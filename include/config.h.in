@@ -1,0 +1,40 @@
+/* include/config.h.in.  Generated automatically from configure.in by autoheader.  */
+
+/* Libaudio dir */
+#undef AUDIO_DIR
+
+/* Libcpu dir */
+#undef CPU_DIR
+
+/* PIFRAM Debugging */
+#undef DEBUG_PIF
+
+/* Exit on unimplemented interrupts */
+#undef EXIT_ON_UNIM
+
+/* Define if you have the <dlfcn.h> header file. */
+#undef HAVE_DLFCN_H
+
+/* Define if you have the `dl' library (-ldl). */
+#undef HAVE_LIBDL
+
+/* Libinput dir */
+#undef INPUT_DIR
+
+/* Not installed */
+#undef NOT_INSTALLED
+
+/* Name of package */
+#undef PACKAGE
+
+/* Define if you have the ANSI C header files. */
+#undef STDC_HEADERS
+
+/* Version number of package */
+#undef VERSION
+
+/* Libvideo dir */
+#undef VIDEO_DIR
+
+/* Define to empty if `const' does not conform to ANSI C. */
+#undef const

@@ -1,0 +1,7 @@
+if you don't want to make install, you should export FAKE64_CPUDIR=./cpucore_pure_c/.libs/
+
+if you do make install, the modules should be located automatically
+
+tar xvIf testrom.tar.bz2 will give you something to test it on
+
+then you can run either ./loader or /usr/local/bin/fake64 depending on whether you make installed or not.

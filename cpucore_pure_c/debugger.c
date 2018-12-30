@@ -21,7 +21,7 @@ void debugger_step(void)
   int i,i6;
   i6=0;
   while(i6<breakpointcount)
-  { if(breakpoints[i6]==reg.pc)
+  { if(breakpoints[i6]==(uint32)reg.pc)
       { run=0;
         printf("Breakpoint %d: 0x%x\n",i6+1,reg.pc);
       }

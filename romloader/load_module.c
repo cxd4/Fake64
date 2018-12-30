@@ -8,7 +8,7 @@
 void * load_module(char *name)
 { void *module;
 
-  module=dlopen(name,RTLD_LAZY); // replace with rtld_now to speed things up?
+  module=dlopen(name,RTLD_LAZY | RTLD_GLOBAL); // replace with rtld_now to speed things up?
   if(!module)
    { fprintf(stderr, "%s: %s\n", PROG_NAME, dlerror());
      return NULL;
@@ -26,6 +26,24 @@ void * load_symbol(void *module,char *name,char *modulename)
    return NULL;
   }
   return symbol;
+}
+
+input_module *load_input_module(char *name) {
+
+	void *module, *module_id;
+	input_module *input;
+
+	module = load_module(name);
+	if (!module) { return 0; }
+
+	module_id = load_symbol(module, "module_id", name);
+	if (!module_id) { return 0; }
+
+	input = (input_module *)malloc(sizeof(input_module));
+	input->module = module;
+	input->module_id = module_id;
+
+	return input;
 }
 
 cpu_module *load_cpu_core_module(char *name)
@@ -47,8 +65,14 @@ cpu_module *load_cpu_core_module(char *name)
   return cpumodule;
 }
 
-/*main(int argc,char **argv)
-{ cpu_module *cpu;
-  cpu=load_cpu_core_module(argv[1]);
-  printf("%s\n",(*cpu->module_id)());
-}*/
+char *get_module_id(char *filename)
+{ void *module;
+  char *(*module_id_func)(void);
+  module=load_module(filename);
+  if(!module)
+   return 0;
+  module_id_func=load_symbol(module,"module_id",filename);
+  if(!module_id_func)
+   return 0;
+  return (*module_id_func)();  
+}

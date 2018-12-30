@@ -1,3 +1,11 @@
+Oct 20 2001 by Bluefyre:
+
+    Made a sexy package type thinger
+
+Oct 19 2001 by HCl:
+
+    Changed romloader quite a bit: modules are loaded interactively.
+
 Oct 03 2001 by Bluefyre:
 
     Realised the named stuff is worse than useless unless the debugger dumps

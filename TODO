@@ -1,3 +1,6 @@
 Make dma transfers realtime
 Implement interrupts
 Implement exceptions
+update: exceptions just need to be put in place(i hope):
+void Exception(uint32 type);
+Exception(<type here>);

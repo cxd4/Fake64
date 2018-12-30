@@ -11,10 +11,8 @@ extern cpu_instruction ecpu_regimm[32];
 extern cpu_instruction ecpu_cop0[8];
 
 extern struct cpu_reg reg;
-extern int error;
+extern int lerror;
 extern struct rom *currentrom;
-extern uint32 CPUdelay;
-extern uint32 CPUdelayPC;
 
 // leave this on till we got all memory areas implemented
 
@@ -22,27 +20,27 @@ extern uint32 CPUdelayPC;
 
 int eCPU_UNIMPLEMENTED(uint32 op){
 	fprintf(stderr,"Unimplemented opcode (exec) %d pc:0x%x\n",opcode(op)>>26,reg.pc);
-	error=-1;
+	lerror=-1;
 }
 
 int eCPU_SPECIAL_UNIMPLEMENTED(uint32 op){
 	fprintf(stderr,"Unimplemented special opcode (exec) %d pc:0x%x\n",special(op),reg.pc);
-	error=-2;
+	lerror=-2;
 }
 
 int eCPU_REGIMM_UNIMPLEMENTED(uint32 op){
 	fprintf(stderr,"Unimplemented regimm opcode (exec) %d pc:0x%x\n",rt(op),reg.pc);
-	error=-3;
+	lerror=-3;
 }
 
 int eCPU_COP0_UNIMPLEMENTED(uint32 op) {
 	fprintf(stderr,"Unimplemented COP0 opcode (exec) %d pc:0x%x\n", special(op),reg.pc);
-	error=-4;
+	lerror=-4;
 }
 
 int eCPU_COP1_UNIMPLEMENTED(uint32 op) {
 	fprintf(stderr,"Unimplemented COP1 opcode (exec) %d,%d\n",base(op),special(op));
-	error=-5;
+	lerror=-5;
 }
 
 int eCPU_SPECIAL(uint32 op) {
@@ -82,6 +80,7 @@ int eCPU_ORI(uint32 op) {
 }
 
 int eCPU_SPECIAL_ADD(uint32 op) {
+// hah we can almost literally uncomment this code :-)
 //  if((reg.gpr[rs(op)]+reg.gpr[rt(op)])>0xFFFFFFFF)
 //    exception(overflow);
   reg.gpr[rd(op)]=reg.gpr[rs(op)]+reg.gpr[rt(op)];
@@ -102,15 +101,15 @@ int eCPU_SPECIAL_ADDU(uint32 op) {
 
 int eCPU_BEQ(uint32 op) {
 	if(reg.gpr[rs(op)] == reg.gpr[rt(op)]) 
-	 { CPUdelayPC = reg.pc+(int16)(immediate(op) << 2)+4;
-	   CPUdelay=1;
+	 { reg.CPUdelayPC = reg.pc+(int16)(immediate(op) << 2)+4;
+	   reg.CPUdelay=1;
 	 }
 }
 
 int eCPU_BEQL(uint32 op) {
         if(reg.gpr[rs(op)] == reg.gpr[rt(op)])
-         { CPUdelayPC = reg.pc+(int16)(immediate(op) << 2)+4;
-           CPUdelay=1;
+         { reg.CPUdelayPC = reg.pc+(int16)(immediate(op) << 2)+4;
+           reg.CPUdelay=1;
          }
 	else
 	  reg.pc+=4;
@@ -118,8 +117,8 @@ int eCPU_BEQL(uint32 op) {
 
 int eCPU_BNEL(uint32 op) {
         if(reg.gpr[rs(op)] != reg.gpr[rt(op)])
-         { CPUdelayPC = reg.pc+(int16)(immediate(op) << 2)+4;
-           CPUdelay=1;
+         { reg.CPUdelayPC = reg.pc+(int16)(immediate(op) << 2)+4;
+           reg.CPUdelay=1;
          }
         else
           reg.pc+=4;
@@ -127,23 +126,23 @@ int eCPU_BNEL(uint32 op) {
 
 int eCPU_BNE(uint32 op) {
 	if((uint32)reg.gpr[rs(op)] != (uint32)reg.gpr[rt(op)]) 
-	 { CPUdelayPC = reg.pc+(int16)(immediate(op) << 2)+4;
-	   CPUdelay=1;
+	 { reg.CPUdelayPC = reg.pc+(int16)(immediate(op) << 2)+4;
+	   reg.CPUdelay=1;
 	 }
 }
 
 int eCPU_BLEZ(uint32 op) {
   if(reg.gpr[rs(op)]<=0)
    {
-      CPUdelayPC = reg.pc+(int16)(immediate(op) << 2)+4;
-      CPUdelay=1;
+      reg.CPUdelayPC = reg.pc+(int16)(immediate(op) << 2)+4;
+      reg.CPUdelay=1;
    }
 }
 
 int eCPU_BLEZL(uint32 op) {
         if(reg.gpr[rs(op)] <= 0 )
-         { CPUdelayPC = reg.pc+(int16)(immediate(op) << 2)+4;
-           CPUdelay=1;
+         { reg.CPUdelayPC = reg.pc+(int16)(immediate(op) << 2)+4;
+           reg.CPUdelay=1;
          }
         else
           reg.pc+=4;
@@ -151,13 +150,11 @@ int eCPU_BLEZL(uint32 op) {
 
 int eCPU_SH(uint32 op) {
  uint32 addr;
- // ok... i'm just following N64OPS#H.TXT here...
  addr=(reg.gpr[base(op)]+(int16)offset(op)) & 0x1fffffff;
- // are switch()'s inefficient? -- YES (but these ifs below are even worse)
 #ifdef DEBUG
   if(!RAM_OFFSET_MAP[addr>>16])
   { printf("SH: Unimplemented memory area. addy: 0x%x\n",addr);
-    error=-2;
+    lerror=-2;
     return;
   }
 #endif
@@ -165,7 +162,7 @@ int eCPU_SH(uint32 op) {
  if(addr&0x04000000) 
    { switch(addr)
       {
-	default: printf("SH:Unimplemented interrupt\n"); error=-2; return;
+	default: printf("SH:Unimplemented interrupt\n"); lerror=-2; return;
       }
    }
  else
@@ -178,14 +175,14 @@ int eCPU_LHU(uint32 op) {
 #ifdef DEBUG
   if(!RAM_OFFSET_MAP[addr>>16])
   { printf("LHU: Unimplemented memory area. addy: 0x%x\n",addr);
-     error=-2;
+     lerror=-2;
      return;
   }
 #endif
  if(addr&0x04000000)
    { switch(addr)
       {
-        default: printf("LHU:Unimplemented interrupt\n"); error=-2; return;
+        default: printf("LHU:Unimplemented interrupt\n"); lerror=-2; return;
       }
    }
  else
@@ -194,29 +191,28 @@ int eCPU_LHU(uint32 op) {
 
 int eCPU_SB(uint32 op) {
  uint32 addr;
- // ok... i'm just following N64OPS#H.TXT here...
  addr=(reg.gpr[base(op)]+(int16)offset(op)) & 0x1fffffff;
 #ifdef DEBUG
   if(!RAM_OFFSET_MAP[addr>>16])
   { printf("SW: Unimplemented memory area. addy: 0x%x\n",addr);
-    error=-2;
+    lerror=-2;
     return;
   }
 #endif
-/* if(addr&0x04000000)
-    Check_SW(addr,op);
- else*/
+ if(addr&0x04000000)
+/*    Check_SW(addr,op);*/
+     printf("SB stored to register range! pc:0x%x\n",reg.pc);
+ else
    *((uint8 *)(addr+RAM_OFFSET_MAP[addr>>16]))=reg.gpr[rt(op)];
 }
 
 int eCPU_LBU(uint32 op) {
 	uint32 addr;
-	// I'm copying you
 	addr=(reg.gpr[base(op)]+(int16)offset(op)) & 0x1fffffff;
 #ifdef DEBUG
 	if(!RAM_OFFSET_MAP[addr>>16]) {
 		printf("LBU: Unimplemented memory area. addy: 0x%x\n", addr);
-		error = -2;
+		lerror = -2;
 		return;
 	}
 #endif
@@ -230,12 +226,11 @@ int eCPU_LBU(uint32 op) {
 
 int eCPU_SW(uint32 op) { 
  uint32 addr;
- // ok... i'm just following N64OPS#H.TXT here...
  addr=(reg.gpr[base(op)]+(int16)offset(op)) & 0x1fffffff;
 #ifdef DEBUG
   if(!RAM_OFFSET_MAP[addr>>16])
   { printf("SW: Unimplemented memory area. addy: 0x%x\n",addr);
-    error=-2;
+    lerror=-2;
     return;
   }
 #endif
@@ -251,26 +246,25 @@ int eCPU_LW(uint32 op) {
 #ifdef DEBUG
  if(!RAM_OFFSET_MAP[addr>>16])
  { printf("LW: Unimplemented memory area. addy: 0x%x\n",addr);
-     error=-2;
+     lerror=-2;
      return;
   }
 #endif
  if(addr&0x04000000)
    Check_LW(addr,op);
- else // patch... 1964 doesn't seem to sign extend them mmmh yah it does
- reg.gpr[rt(op)]=*((int32 *)(addr+RAM_OFFSET_MAP[addr>>16]));
+ else
+   reg.gpr[rt(op)]=*((int32 *)(addr+RAM_OFFSET_MAP[addr>>16]));
 }
 
 int eCPU_JAL(uint32 op) {
- // ohh somebody... check if this is correct...
  reg.gpr[31]=reg.pc+8;
- CPUdelayPC=(((reg.pc&0xf0000000)|target(op)<<2));
- CPUdelay=1;
+ reg.CPUdelayPC=(((reg.pc&0xf0000000)|target(op)<<2));
+ reg.CPUdelay=1;
 }
 
 int eCPU_SPECIAL_JR(uint32 op) {
- CPUdelayPC=reg.gpr[rs(op)];
- CPUdelay=1;
+ reg.CPUdelayPC=reg.gpr[rs(op)];
+ reg.CPUdelay=1;
 }
 
 int eCPU_SPECIAL_OR(uint32 op) {
@@ -291,7 +285,6 @@ int eCPU_SPECIAL_SRL(uint32 op) {
 
 int eCPU_SPECIAL_SRLV(uint32 op) {
   
-//if (reg.gpr[rs(op)] > 31) { printf("%i, %i\n", reg.gpr[rs(op)], (reg.gpr[rs(op)] & 31)); }
   reg.gpr[rd(op)]=(int32)((uint32)reg.gpr[rt(op)]>>(uint32)(reg.gpr[rs(op)]&31));
 }
 
@@ -300,13 +293,17 @@ int eCPU_SPECIAL_AND(uint32 op) {
 }
 
 int eCPU_LD(uint32 op) {
+ union {
+    uint32 bit32[2];
+    uint64 bit64;
+  } temp;
  uint32 addr;
  addr=(reg.gpr[base(op)]+(int16)offset(op)) & 0x1fffffff;
 
 #ifdef DEBUG
  if(!RAM_OFFSET_MAP[addr>>16])
   { printf("LD: Unimplemented memory area. addy: 0x%x\n",addr);
-     error=-2;
+     lerror=-2;
      return;
   }
 #endif
@@ -318,7 +315,9 @@ int eCPU_LD(uint32 op) {
       }
    }
  else
-   reg.gpr[rt(op)]=*((int64 *)(addr+RAM_OFFSET_MAP[addr>>16]));
+  { temp.bit64= *((uint64 *)(addr+RAM_OFFSET_MAP[addr>>16]));
+    reg.gpr[rt(op)]=((uint64)temp.bit32[0])<<32|((uint64)temp.bit32[1]);
+  }
 }
 
 int eCPU_SPECIAL_MULTU(uint32 op) {
@@ -362,7 +361,7 @@ int eCPU_SPECIAL_DSRA32(uint32 op){
 int eCPU_SPECIAL_DDIVU(uint32 op){
  uint64 tRS;
  uint64 tRT=rt(op);
- if (tRT) // avoid divide by zeros
+ if (tRT) // avoid divide by zeros, btw, shouldn't it be an exception if tRT=0?
   {
     reg.LO=(tRS=reg.gpr[rs(op)]) / tRT;
     reg.HI=tRS % tRT;
@@ -403,16 +402,16 @@ int eCPU_REGIMM_BGEZAL(uint32 op) {
 
  if(((int64)(reg.gpr[rs(op)]))>=0)
   {
-    CPUdelayPC=reg.pc+(int16)(immediate(op) << 2)+4;;
-    CPUdelay=1;
+    reg.CPUdelayPC=reg.pc+(int16)(immediate(op) << 2)+4;;
+    reg.CPUdelay=1;
   }
 }
 
 int eCPU_REGIMM_BGEZL(uint32 op) {
  if(((int64)(reg.gpr[rs(op)]))>=0)
   {
-    CPUdelayPC=reg.pc+(int16)(immediate(op) << 2)+4;;
-    CPUdelay=1;
+    reg.CPUdelayPC=reg.pc+(int16)(immediate(op) << 2)+4;;
+    reg.CPUdelay=1;
   }
  else
    reg.pc+=4;

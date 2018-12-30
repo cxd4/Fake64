@@ -29,11 +29,10 @@ extern int print;
 
 struct cpu_reg reg;
 struct rom *currentrom;
-int error=0;
-uint64 rpc=0;
-int64 CPUdelayPC=0;
-uint32 CPUdelay=0;
+int lerror=0;
+uint32 rpc=0;
 
+extern void init_pifram(uint8*);
 extern char* reg_names[];
 
 void debugger_step(void);
@@ -41,13 +40,13 @@ void debugger_step(void);
 void main_cpu_loop(struct rom *rom)
 {
         uint32 op;
-	int count;
 #if DEBUG || USE_DEBUGGER
 	int disasmcount=0;
 #endif
 	int ret;
 	currentrom=rom;
 	alloc_memory(rom);
+	init_pifram(PIFMEM);
 
 	signal(SIGINT, sig_stop_run);
 
@@ -95,13 +94,16 @@ void main_cpu_loop(struct rom *rom)
 	        *((uint32 *)MIREGS+4)=0x01010101;
 //    MI_VERSION_REG_R = 0x01010101;
 
+	reg.CPUdelayPC=reg.CPUdelay=0;
+
 	// copy bootcode to SP_DMEM
 	memcpy((void *)(RAM_OFFSET_MAP[0x400]+0x4000000),rom->header,0x1000); 
 	reg.pc=0xffffffffa4000040; // bootcode
 	ret = 0;
-	count = -1;
+	reg.gpr0[9] = 0;
+	lerror=0;
 
-	while(error==0) {
+	while(lerror==0) {
 #ifdef DEBUG
 		if(((reg.pc&0x1fffffff)-pcbase)<0)
 		 { printf("ERROR! PC isn't valid!: pc: %d\n",reg.pc);
@@ -140,22 +142,28 @@ void main_cpu_loop(struct rom *rom)
 #endif
 
                 ecpu_instr[opcode(op)>>26](op);
+		if (MI_INTR_REG_R & MI_INTR_MASK_REG_R & 0x3f)
+		 printf("Pending interrupt! pc:0x%x\n",reg.pc);
+
 #ifdef EXCESSIVE_DEBUG
 		debug_do_a_dump();
 #endif
-          switch (CPUdelay)
+          switch (reg.CPUdelay)
            {
             case 0 :    reg.pc += cpu_step; break;
-            case 1 :    reg.pc += cpu_step; CPUdelay = 2; break;
-            default:    reg.pc = CPUdelayPC; CPUdelay = 0; break;
+            case 1 :    reg.pc += cpu_step; reg.CPUdelay = 2; break;
+            default:    reg.pc = reg.CPUdelayPC; reg.CPUdelay = 0; break;
            }
-	count++;
+	reg.gpr0[9]++;
 	}
 	do_a_dump();
 	printf("execution ended at 0x%x\n",reg.pc);
-	printf("%i instructions executed\n", count);
+	printf("Last opcode: "); fflush(stdout);
+        dcpu_instr[opcode(op)>>26](op);
+        fflush(stdout);	
+	printf("%i instructions executed\n", reg.gpr0[9]);
 #if DEBUG || USE_DEBUGGER
-        printf("%i instructions successfully decoded\n",disasmcount);
+        printf("%i instructions disassembled\n",disasmcount);
 #endif
 }
 

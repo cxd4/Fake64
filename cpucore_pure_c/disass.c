@@ -97,7 +97,7 @@ int dCPU_SPECIAL_AND(uint32 op) {
 }
 
 int dCPU_SPECIAL_SRA(uint32 op) {
- printf("sra     $%s $%s $%s\n",reg_names[rd(op)],reg_names[rt(op)],sa(op));
+ printf("sra     $%s $%s $0x%x\n",reg_names[rd(op)],reg_names[rt(op)],sa(op));
 }
 
 int dCPU_SPECIAL_SUBU(uint32 op) {

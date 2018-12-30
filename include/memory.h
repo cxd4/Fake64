@@ -110,7 +110,9 @@ void init_memory (int romlength);
 #define MI_VERSION_REG          (MI_BASE_REG+0x04)
 #define MI_NOOP_REG             MI_VERSION_REG
 #define MI_INTR_REG             (MI_BASE_REG+0x08)
+#define MI_INTR_REG_R		*((uint32 *)(MIREGS+0x08))
 #define MI_INTR_MASK_REG        (MI_BASE_REG+0x0C)
+#define MI_INTR_MASK_REG_R	*((uint32 *)(MIREGS+0x0C))
 
 #define MI_INTR_SP              0x01
 #define MI_INTR_SI              0x02
@@ -206,3 +208,23 @@ void init_memory (int romlength);
 #define SP_STATUS_SIG6         0x2000          
 #define SP_STATUS_SIG7         0x4000        
 
+#define AI_DRAM_ADDR_REG        (AI_BASE_REG+0x00)
+#define AI_LEN_REG              (AI_BASE_REG+0x04)
+#define AI_CONTROL_REG          (AI_BASE_REG+0x08)
+#define AI_STATUS_REG           (AI_BASE_REG+0x0C)
+#define AI_DACRATE_REG          (AI_BASE_REG+0x10)
+#define AI_BITRATE_REG          (AI_BASE_REG+0x14)
+#define AI_CONTROL_DMA_ON       0x01
+#define AI_CONTROL_DMA_OFF      0x00
+#define AI_STATUS_FIFO_FULL     0x80000000
+#define AI_STATUS_DMA_BUSY      0x40000000
+#define AI_MAX_DAC_RATE         16384
+#define AI_MIN_DAC_RATE         132
+#define AI_MAX_BIT_RATE         16 
+#define AI_MIN_BIT_RATE         2
+#define AI_NTSC_MAX_FREQ        368000
+#define AI_NTSC_MIN_FREQ        3000
+#define AI_PAL_MAX_FREQ         376000
+#define AI_PAL_MIN_FREQ         3050
+#define AI_MPAL_MAX_FREQ        368000
+#define AI_MPAL_MIN_FREQ        3000

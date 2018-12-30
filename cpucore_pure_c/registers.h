@@ -1,13 +1,16 @@
 struct cpu_reg {
 	long long gpr[32];  //r4300i registers
-	long long gpr0[32];	//COP0 registers
-	double fgr_1[32];	//COP1 floating pointers
-	int fcr[32];		//COP1 Control registers (only 0 and 31 exist)
+	long long gpr0[32]; //COP0 registers
+	long long gpr1[32]; //COP1 registers
+	unsigned int cr0[32];	     //COP0 Control registers (do they exist?)
+	unsigned int cr1[32];	     //COP1 Control registers (only 0 and 31 exist)
 				//But i'd rather trade memory in for speed than
 				//vice versa
 	long long pc;		//Program counter
 	long long HI;		//High 64 bits of multiply/divide result
 	long long LO;		//Low 64 bits of multiply/divide result
+	long long CPUdelayPC;
+	uint32 CPUdelay;
 	char LLbit;		//Load/Link bit, as a char :O)
 };
 
@@ -25,3 +28,7 @@ struct tlb_struct
 };
 
 extern struct tlb_struct        TLB[MAXTLB];
+
+#define COP0_STATUS	reg.gpr[12]
+#define COP0_CAUSE	reg.gpr0[13]
+#define COP0_EPC	reg.gpr[14]

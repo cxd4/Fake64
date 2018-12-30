@@ -1,7 +1,24 @@
+#include <config.h>
 #include <stdio.h>
+#include <dirent.h>
 #include <general.h>
 #include <romheader.h>
 #include <load_module.h>
+
+#include <sys/stat.h>
+#include <unistd.h>
+
+/* especially for me :) */
+
+#ifdef NOT_INSTALLED
+	#undef CPU_DIR
+	#define CPU_DIR "./cpucore_pure_c/.libs"
+	#undef INPUT_DIR
+	#define INPUT_DIR "./bfs_input_module/.libs"
+#endif
+
+cpu_module *cpu;
+input_module *input;
 
 void *dmalloc(int size)
 { void *t;
@@ -99,21 +116,80 @@ void dumpheader(struct rom *rom)
   printf("Size: %d megabits\n",((rom->length*8)/1024)/1024);
 }
 
+int is_module(const struct dirent *name)
+{ return (!strcmp(name->d_name+strlen(name->d_name)-3,".so")); }
+
+char module_name[200];
+
+char *pick_module(char *directory)
+{
+  struct dirent **namelist;
+  char buf[200];
+  int n,i,t=0;
+
+  n=scandir(directory, &namelist, &is_module, alphasort);
+  if(n<0)
+   { perror("scandir:"); exit(-1); }
+  else
+   { for(i=0;i<n;i++)
+      {
+       sprintf(buf,"%s/%s",directory,namelist[i]->d_name);
+       printf("%d) %s / %s\n",i+1,namelist[i]->d_name,get_module_id(buf));
+      }
+     while(!t | !namelist[t-1])
+      { 
+        printf("\nPick module: ");
+        fflush(stdout);
+        fgets(buf,198,stdin);
+        t=atoi(buf);
+      }
+     t--;
+     sprintf(module_name,"%s/%s",directory,namelist[t]->d_name);
+     while(n--)
+	free(namelist[n]);
+     free(namelist);
+     return module_name;
+   }
+}
+
+/*void call_init_pifram(uint8 *here) {
+
+	void (*init_pifram)();
+
+	init_pifram = (void*)dlsym(input->module, "init_pifram");
+
+	if (!init_pifram) {
+		dlerror();
+	} else {
+		init_pifram(here);
+	}
+}*/
+
 main(int argc,char **argv)
 { struct rom *romstruct;
-  cpu_module *cpu;
-  romstruct=load_n64_rom(argv[1]); 
-  dumpheader(romstruct);
-  if(!(cpu = (cpu_module *)load_cpu_core_module\
-	("./cpucore_pure_c/.libs/libcpu.so"))) {
-	fprintf(stderr, "maybe you're in cpucore_pure_c/, lets try there\n");
-	cpu = (cpu_module *)load_cpu_core_module\
-		("./.libs/libcpu.so");
-  }
-  if(cpu)
-   { printf("Cpu core loaded: %s\n",(*cpu->module_id)());
-    (*cpu->main_cpu_loop)(romstruct);
+  char buf[200];
+
+  				       // add ~/.fake64rc support,eg autoselect 
+				       // a module
+  while(!(input = (input_module *)load_input_module(pick_module(INPUT_DIR))))
+   {
+     printf("Couldn't load input module\n");
    }
+
+  printf("Input module loaded: %s\n", (*input->module_id)());
+
+  while(!(cpu = (cpu_module *)load_cpu_core_module(pick_module(CPU_DIR)))) 
+   {
+     printf("Couldn't load cpucore module\n");
+   }
+
+  printf("Cpu core loaded: %s\n",(*cpu->module_id)());
+
+  romstruct=load_n64_rom(argv[1]);
+  dumpheader(romstruct);
+
+  (*cpu->main_cpu_loop)(romstruct);
+
   dfree(romstruct->image);
   dfree(romstruct);
 }

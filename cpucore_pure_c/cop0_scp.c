@@ -5,7 +5,7 @@
 
 extern struct cpu_reg reg;
 struct tlb_struct        TLB[MAXTLB];
-extern int error;
+extern int lerror;
 
 int eCPU_COP0_MOVE(uint32 op) {
  if(base(op)) {
@@ -57,7 +57,7 @@ int eCPU_COP0_TLBWI(uint32 op) {
                 break;
             default:
                 fprintf(stderr,"tlbwi: invalid page size\n");
-		error=-4;
+		lerror=-4;
                 break;
         }
 }  

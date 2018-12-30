@@ -1,6 +1,6 @@
 dnl Process this file with autoconf to produce a configure script.
 AC_INIT(romloader/byteswap.c)
-AM_INIT_AUTOMAKE(emu,0.1)
+AM_INIT_AUTOMAKE(fake64,0.0.1)
 AM_CONFIG_HEADER(include/config.h)
 
 dnl Checks for programs.
@@ -23,4 +23,36 @@ dnl Checks for library functions.
 AC_DISABLE_STATIC
 AM_PROG_LIBTOOL
 
-AC_OUTPUT(cpucore_pure_c/Makefile romloader/Makefile Makefile)
+hiddenbindir='${exec_prefix}/fake64/bin'
+AC_SUBST(hiddenbindir)
+
+libcpudir='${exec_prefix}/fake64/plugins/cpu'
+AC_SUBST(libcpudir)
+
+libaudiodir='${exec_prefix}/fake64/plugins/audio'
+AC_SUBST(libaudiodir)
+
+libvideodir='${exec_prefix}/fake64/plugins/video'
+AC_SUBST(libvideodir)
+
+libinputdir='${exec_prefix}/fake64/plugins/input'
+AC_SUBST(libinputdir)
+
+temp_pref=$prefix
+test "x$temp_pref" = xNONE && temp_pref=$ac_default_prefix
+temp_pref="$temp_pref/fake64/plugins"
+
+AC_DEFINE_UNQUOTED(CPU_DIR, "${temp_pref}/cpu", [Libcpu dir])
+AC_DEFINE_UNQUOTED(AUDIO_DIR, "${temp_pref}/audio", [Libaudio dir])
+AC_DEFINE_UNQUOTED(VIDEO_DIR, "${temp_pref}/video", [Libvideo dir])
+AC_DEFINE_UNQUOTED(INPUT_DIR, "${temp_pref}/input", [Libinput dir])
+
+AC_ARG_ENABLE(notinstalled, hmm)
+AC_ARG_ENABLE(exitonunim, hmm)
+AC_ARG_ENABLE(debugpif, hmm)
+
+test "$enable_notinstalled" = "yes" && AC_DEFINE(NOT_INSTALLED, 1, [Not installed])
+test "$enable_exitonunim" = "yes" && AC_DEFINE(EXIT_ON_UNIM, 1, [Exit on unimplemented interrupts])
+test "$enable_debugpif" = "yes" && AC_DEFINE(DEBUG_PIF, 1, [PIFRAM Debugging])
+
+AC_OUTPUT(cpucore_pure_c/Makefile romloader/Makefile bfs_input_module/Makefile Makefile)
