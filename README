@@ -1,4 +1,4 @@
-if you don't want to make install, you should export FAKE64_CPUDIR=./cpucore_pure_c/.libs/
+if you don't want to make install, you should ./configure --enable-notinstalled 
 
 if you do make install, the modules should be located automatically
 

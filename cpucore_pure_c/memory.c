@@ -16,6 +16,10 @@ uint8 *RIREGS	= NULL;   // RDRAM Interface registers
 uint8 *SIREGS	= NULL;   // Serial Interface registers
 uint8 *PIFMEM	= NULL;   // PIF area
 uint8 *RDRAM	= NULL;   // rdram
+uint8 *C2A1	= NULL;	  // Cartridge Domain 2 Address 1 32kb sram
+uint8 *C2A2     = NULL;   // Cartridge Domain 2 Address 2 128kb flashram
+uint8 *C1A1     = NULL;   // Cartridge Domain 1 Address 1 32kb sram
+uint8 *C1A3     = NULL;   // Cartridge Domain 1 Address 3 32kb sram
 uint8 *ROM	= NULL;   // rom(header&everythin)
 
 int RAM_OFFSET_MAP[0x2000];
@@ -77,6 +81,23 @@ int alloc_memory (struct rom *rom) {
         if (RDRAM == NULL) {
                 RDRAM=(uint8 *)calloc(1,RAM_SIZE);
                 if (RDRAM == NULL)     return -1; }
+
+        if (C2A1 == NULL) {
+                C2A1=(uint8 *)calloc(1,0x8000);
+                if (C2A1 == NULL)     return -1; }
+
+        if (C2A2 == NULL) {
+                C2A2=(uint8 *)calloc(1,0x20000);
+                if (C2A2 == NULL)     return -1; }
+
+        if (C1A1 == NULL) {
+                C1A1=(uint8 *)calloc(1,0x8000);
+                if (C1A1 == NULL)     return -1; }
+
+        if (C1A3 == NULL) {
+                C1A3=(uint8 *)calloc(1,0x8000);
+                if (C1A3 == NULL)     return -1; }
+
 	init_memory(rom->length);
         return 0;
 }
@@ -106,5 +127,12 @@ void init_memory(int romlength)
   RAM_OFFSET_MAP[0x0460]=(int)PIREGS-0x04600000;
   RAM_OFFSET_MAP[0x0470]=(int)RIREGS-0x04700000;
   RAM_OFFSET_MAP[0x0480]=(int)SIREGS-0x04800000;
+  RAM_OFFSET_MAP[0x0500]=(int)C2A1-0x05000000;
+  RAM_OFFSET_MAP[0x0600]=(int)C1A1-0x06000000;
+  RAM_OFFSET_MAP[0x0800]=(int)C2A2-0x08000000;
+  RAM_OFFSET_MAP[0x0801]=(int)C2A2-0x08010000;
   RAM_OFFSET_MAP[0x1fc0]=(int)PIFMEM-0x1fc00000;
+  printf("%x:%x\n", PIFMEM, RAM_OFFSET_MAP[0x1fc0]+0x1fc00000);
+  RAM_OFFSET_MAP[0x1fd0]=(int)C1A3-0x1fd00000;
+
 }

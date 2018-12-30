@@ -1,0 +1,101 @@
+SetDefault default
+
+Section default {
+	Include input_defaults
+}
+
+Section input_defaults {
+	Option input mapkey 0 up 98
+	Option input mapkey 0 down 104
+	Option input mapkey 0 left 100
+	Option input mapkey 0 right 102
+
+	Option input mapkey 0 start 36
+	Option input mapkey 0 a 52
+	Option input mapkey 0 b 53
+	Option input mapkey 0 z 54
+
+	Option input mapsticky 0 64 80
+	Option input mapsticky 0 -64 88
+	Option input mapstickx 0 64 85
+	Option input mapstickx 0 -64 83
+
+	Option input mapsticky 0 120 112
+	Option input mapsticky 0 -120 84
+	Option input mapstickx 0 120 81
+	Option input mapstickx 0 -120 79
+}
+
+Section hcls_input {
+	Option input mapkey 0 a 38
+	Option input mapkey 0 b 53
+	Option input mapkey 0 start 39
+	Option input mapkey 0 z 52
+	Option input mapkey 0 up 31
+	Option input mapkey 0 down 45
+	Option input mapkey 0 left 44
+	Option input mapkey 0 right 46
+	Option input mapkey 0 cup 28
+	Option input mapkey 0 cdown 42
+	Option input mapkey 0 cleft 41
+	Option input mapkey 0 cright 43
+	Option input mapkey 0 pleft 24
+	Option input mapkey 0 pright 25
+
+	Option input mapsticky 0 100 98
+	Option input mapsticky 0 -100 104
+	Option input mapstickx 0 100 100
+	Option input mapstickx 0 -100 102
+}
+
+Section four_players_dpads {
+	Option input resetmaps
+	Option input mapsticky 0 64 80
+	Option input mapsticky 0 -64 88
+	Option input mapstickx 0 64 85
+	Option input mapstickx 0 -64 83
+
+	Option input mapkey 0 start 36
+
+	Option input mapkey 0 up 98
+	Option input mapkey 0 down 104
+	Option input mapkey 0 left 100
+	Option input mapkey 0 right 102
+
+	Option input mapkey 0 a 52
+	Option input mapkey 0 b 53
+	Option input mapkey 0 z 54
+
+	Option input mapkey 1 up 25
+	Option input mapkey 1 down 39
+	Option input mapkey 1 left 38
+	Option input mapkey 1 right 40
+	Option input mapkey 2 up 29
+	Option input mapkey 2 down 43
+	Option input mapkey 2 left 42
+	Option input mapkey 2 right 44
+	Option input mapkey 3 up 34
+	Option input mapkey 3 down 48
+	Option input mapkey 3 left 47
+	Option input mapkey 3 right 51
+}
+
+Section liner_art {
+        Option input mapkey 0 up 98
+        Option input mapkey 0 down 104
+        Option input mapkey 0 left 100
+        Option input mapkey 0 right 102
+	
+	Option input mapkey 1 up 104
+        Option input mapkey 1 down 98
+        Option input mapkey 1 left 102
+        Option input mapkey 1 right 100
+        Option input mapkey 2 up 100
+        Option input mapkey 2 down 102
+        Option input mapkey 2 left 104
+        Option input mapkey 2 right 98
+        Option input mapkey 3 up 102
+        Option input mapkey 3 down 100
+        Option input mapkey 3 left 98
+        Option input mapkey 3 right 104
+}

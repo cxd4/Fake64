@@ -72,23 +72,30 @@ OBJDUMP = @OBJDUMP@
 OBJEXT = @OBJEXT@
 PACKAGE = @PACKAGE@
 RANLIB = @RANLIB@
+SDL_CFLAGS = @SDL_CFLAGS@
+SDL_CONFIG = @SDL_CONFIG@
+SDL_LIBS = @SDL_LIBS@
 STRIP = @STRIP@
 VERSION = @VERSION@
+fomit = @fomit@
+gprof = @gprof@
 hiddenbindir = @hiddenbindir@
 libaudiodir = @libaudiodir@
 libcpudir = @libcpudir@
 libinputdir = @libinputdir@
 libvideodir = @libvideodir@
+mad_linking = @mad_linking@
 
-SUBDIRS = romloader cpucore_pure_c bfs_input_module
+SUBDIRS = cpucore_pure_c bfs_input_module sliders_video_module bfs_audio_module rs_audio_module romloader cpucore_dynarec
+EXTRA_DIST = detectmodules.sh fake64rc
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 mkinstalldirs = $(SHELL) $(top_srcdir)/mkinstalldirs
 CONFIG_HEADER = ./include/config.h
 CONFIG_CLEAN_FILES = 
 DIST_COMMON =  README AUTHORS COPYING ChangeLog INSTALL Makefile.am \
-Makefile.in NEWS TODO aclocal.m4 config.guess config.sub configure \
-configure.in include/config.h.in include/stamp-h.in install-sh \
-ltmain.sh missing mkinstalldirs
+Makefile.in NEWS TODO acinclude.m4 aclocal.m4 config.guess config.sub \
+configure configure.in include/config.h.in include/stamp-h.in \
+install-sh ltmain.sh missing mkinstalldirs
 
 
 DISTFILES = $(DIST_COMMON) $(SOURCES) $(HEADERS) $(TEXINFOS) $(EXTRA_DIST)
@@ -98,13 +105,13 @@ GZIP_ENV = --best
 all: all-redirect
 .SUFFIXES:
 $(srcdir)/Makefile.in: Makefile.am $(top_srcdir)/configure.in $(ACLOCAL_M4) 
-	cd $(top_srcdir) && $(AUTOMAKE) --gnu Makefile
+	cd $(top_srcdir) && $(AUTOMAKE) --gnu --include-deps Makefile
 
-Makefile: $(srcdir)/Makefile.in  $(top_builddir)/config.status $(BUILT_SOURCES)
+Makefile: $(srcdir)/Makefile.in  $(top_builddir)/config.status
 	cd $(top_builddir) \
 	  && CONFIG_FILES=$@ CONFIG_HEADERS= $(SHELL) ./config.status
 
-$(ACLOCAL_M4):  configure.in 
+$(ACLOCAL_M4):  configure.in  acinclude.m4
 	cd $(srcdir) && $(ACLOCAL)
 
 config.status: $(srcdir)/configure.in $(CONFIG_STATUS_DEPENDENCIES)
@@ -267,11 +274,6 @@ distdir: $(DISTFILES)
 	-rm -rf $(distdir)
 	mkdir $(distdir)
 	-chmod 777 $(distdir)
-	here=`cd $(top_builddir) && pwd`; \
-	top_distdir=`cd $(distdir) && pwd`; \
-	distdir=`cd $(distdir) && pwd`; \
-	cd $(top_srcdir) \
-	  && $(AUTOMAKE) --include-deps --build-dir=$$here --srcdir-name=$(top_srcdir) --output-dir=$$top_distdir --gnu Makefile
 	@for file in $(DISTFILES); do \
 	  d=$(srcdir); \
 	  if test -d $$d/$$file; then \
@@ -365,21 +367,28 @@ all-redirect all-am all installdirs-am installdirs mostlyclean-generic \
 distclean-generic clean-generic maintainer-clean-generic clean \
 mostlyclean distclean maintainer-clean
 
-
 all-local:
 	if [ ! -f ./loader ] ; then ln -s romloader/romloader ./loader; fi
+	chmod u+x ./detectmodules.sh
+	./detectmodules.sh
 
 clean-local:
 	rm -f ./loader
+	rm -rf ./plugins
 
 install-exec-local:
 	if [ ! -f @bindir@/fake64 ] ; then ln -s @hiddenbindir@/romloader @bindir@/fake64; fi
+	cp ./fake64rc /etc/fake64rc
+	chmod 644 /etc/fake64rc
 
 dist-hook:
 	mkdir $(distdir)/include
 	cp $(srcdir)/include/*.h $(distdir)/include
 	cp $(srcdir)/include/*.in $(distdir)/include
 	cp testrom.tar.bz2 $(distdir)
+
+static:
+	gcc romloader/byteswap.c romloader/romloader.c cpucore_pure_c/libcpu.c cpucore_pure_c/cop0_scp.c cpucore_pure_c/cop1_fpu.c cpucore_pure_c/debugger.c cpucore_pure_c/disass.c cpucore_pure_c/exec.c cpucore_pure_c/interrupts.c cpucore_pure_c/memory.c cpucore_pure_c/opstruct.c cpucore_pure_c/reg_names.c sliders_video_module/libvideo.c rs_audio_module/libaudio.c bfs_input_module/libinput.c -o loader_static -pg -I./include -I./romloader -I./cpucore_pure_c -lSDL -lpthread
 
 # Tell versions [3.59,3.63) of GNU make to not export all variables.
 # Otherwise a system limit (for SysV at least) may be exceeded.

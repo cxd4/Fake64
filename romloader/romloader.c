@@ -1,4 +1,3 @@
-#include <config.h>
 #include <stdio.h>
 #include <dirent.h>
 #include <general.h>
@@ -12,13 +11,30 @@
 
 #ifdef NOT_INSTALLED
 	#undef CPU_DIR
-	#define CPU_DIR "./cpucore_pure_c/.libs"
+	#define CPU_DIR "./plugins/cpu"
 	#undef INPUT_DIR
-	#define INPUT_DIR "./bfs_input_module/.libs"
+	#define INPUT_DIR "./plugins/input"
+	#undef VIDEO_DIR
+	#define VIDEO_DIR "./plugins/video"
+	#undef AUDIO_DIR
+	#define AUDIO_DIR "./plugins/audio"
+#endif
+
+#ifdef GPROF
+	extern void vi_init();
+	extern void ai_init();
+	extern void main_cpu_loop(struct rom*);
+	extern void vi_deinit();
+	extern void ai_deinit();
 #endif
 
 cpu_module *cpu;
 input_module *input;
+video_module *video;
+audio_module *audio;
+
+extern void read_config(int, struct rom*, char*);
+extern char* get_module_id(char*);
 
 void *dmalloc(int size)
 { void *t;
@@ -121,6 +137,8 @@ int is_module(const struct dirent *name)
 
 char module_name[200];
 
+#ifndef GPROF
+
 char *pick_module(char *directory)
 {
   struct dirent **namelist;
@@ -152,6 +170,8 @@ char *pick_module(char *directory)
    }
 }
 
+#endif
+
 /*void call_init_pifram(uint8 *here) {
 
 	void (*init_pifram)();
@@ -169,26 +189,78 @@ main(int argc,char **argv)
 { struct rom *romstruct;
   char buf[200];
 
-  				       // add ~/.fake64rc support,eg autoselect 
-				       // a module
-  while(!(input = (input_module *)load_input_module(pick_module(INPUT_DIR))))
-   {
-     printf("Couldn't load input module\n");
-   }
-
-  printf("Input module loaded: %s\n", (*input->module_id)());
-
-  while(!(cpu = (cpu_module *)load_cpu_core_module(pick_module(CPU_DIR)))) 
-   {
-     printf("Couldn't load cpucore module\n");
-   }
-
-  printf("Cpu core loaded: %s\n",(*cpu->module_id)());
+#ifndef GPROF
 
   romstruct=load_n64_rom(argv[1]);
   dumpheader(romstruct);
 
+  read_config(0, romstruct, argv[1]);
+
+  				       // add ~/.fake64rc support,eg autoselect 
+				       // a module
+  if (!input) {
+   while(!(input = (input_module *)load_input_module(pick_module(INPUT_DIR))))
+    {
+      printf("Couldn't load input module\n");
+    }
+  }
+
+  printf("Input module loaded: %s\n", (*input->module_id)());
+
+  if (!audio) {
+   while(!(audio = (audio_module *)load_audio_module(pick_module(AUDIO_DIR))))
+    {
+      printf("Couldn't load audio module\n");
+    }
+  }
+
+  printf("Audio module loaded: %s\n", (*audio->module_id)());
+
+  if (!video) {
+   while(!(video = (video_module *)load_video_module(pick_module(VIDEO_DIR))))
+    {
+      printf("Couldn't load video module\n");
+    }
+  }
+
+  printf("Video module loaded: %s\n", (*video->module_id)());
+
+  if (!cpu) {
+   while(!(cpu = (cpu_module *)load_cpu_core_module(pick_module(CPU_DIR)))) 
+    {
+      printf("Couldn't load cpucore module\n");
+    }
+  }
+
+  printf("Cpu core loaded: %s\n",(*cpu->module_id)());
+
+  read_config(1, romstruct, argv[1]);
+
+#endif
+
+#ifndef GPROF
+
+  (*video->vi_init)();
+
+  (*audio->ai_init)();
+  
   (*cpu->main_cpu_loop)(romstruct);
+
+  (*audio->ai_deinit)();
+
+  (*video->vi_deinit)();
+
+#endif
+
+#ifdef GPROF
+
+  vi_init();
+  ai_init();
+  main_cpu_loop(romstruct);
+  ai_deinit();
+  vi_deinit();
+
+#endif
 
   dfree(romstruct->image);
   dfree(romstruct);

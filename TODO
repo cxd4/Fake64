@@ -4,3 +4,6 @@ Implement exceptions
 update: exceptions just need to be put in place(i hope):
 void Exception(uint32 type);
 Exception(<type here>);
+update sound: figure out wtf bit/dac rate mean 
+tlb
+

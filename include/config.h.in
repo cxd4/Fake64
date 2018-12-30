@@ -1,22 +1,43 @@
-/* include/config.h.in.  Generated automatically from configure.in by autoheader.  */
+/* include/config.h.in.  Generated automatically from configure.in by autoheader 2.13.  */
 
-/* Libaudio dir */
-#undef AUDIO_DIR
+/* Define to empty if the keyword does not work.  */
+#undef const
+
+/* Define if you have the ANSI C header files.  */
+#undef STDC_HEADERS
+
+/* Define if you have the <dlfcn.h> header file.  */
+#undef HAVE_DLFCN_H
+
+/* Define if you have the dl library (-ldl).  */
+#undef HAVE_LIBDL
+
+/* Name of package */
+#undef PACKAGE
+
+/* Version number of package */
+#undef VERSION
+
+/* x86 assembly */
+#undef USE_X86_ASM
+
+/* MMX support */
+#undef USE_MMX_ASM
+
+/* 3dnow! support */
+#undef USE_3DNOW_ASM
+
+/* SSE SUPPORT */
+#undef USE_SSE_ASM
 
 /* Libcpu dir */
 #undef CPU_DIR
 
-/* PIFRAM Debugging */
-#undef DEBUG_PIF
+/* Libaudio dir */
+#undef AUDIO_DIR
 
-/* Exit on unimplemented interrupts */
-#undef EXIT_ON_UNIM
-
-/* Define if you have the <dlfcn.h> header file. */
-#undef HAVE_DLFCN_H
-
-/* Define if you have the `dl' library (-ldl). */
-#undef HAVE_LIBDL
+/* Libvideo dir */
+#undef VIDEO_DIR
 
 /* Libinput dir */
 #undef INPUT_DIR
@@ -24,17 +45,18 @@
 /* Not installed */
 #undef NOT_INSTALLED
 
-/* Name of package */
-#undef PACKAGE
+/* Exit on unimplemented interrupts */
+#undef EXIT_ON_UNIM
 
-/* Define if you have the ANSI C header files. */
-#undef STDC_HEADERS
+/* PIFRAM Debugging */
+#undef DEBUG_PIF
 
-/* Version number of package */
-#undef VERSION
+/* VI Debugging */
+#undef DEBUG_VI
 
-/* Libvideo dir */
-#undef VIDEO_DIR
+/* Gprof enabled */
+#undef GPROF
 
-/* Define to empty if `const' does not conform to ANSI C. */
-#undef const
+/* Global Debugging */
+#undef DEBUG
+
