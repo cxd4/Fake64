@@ -1,0 +1,26 @@
+dnl Process this file with autoconf to produce a configure script.
+AC_INIT(romloader/byteswap.c)
+AM_INIT_AUTOMAKE(emu,0.1)
+AM_CONFIG_HEADER(include/config.h)
+
+dnl Checks for programs.
+AC_PROG_CC
+AC_PROG_AWK
+AC_PROG_INSTALL
+AC_PROG_LN_S
+
+dnl Checks for libraries.
+dnl Replace `main' with a function in -ldl:
+AC_CHECK_LIB(dl, main)
+
+dnl Checks for header files.
+AC_HEADER_STDC
+
+dnl Checks for typedefs, structures, and compiler characteristics.
+AC_C_CONST
+
+dnl Checks for library functions.
+AC_DISABLE_STATIC
+AM_PROG_LIBTOOL
+
+AC_OUTPUT(cpucore_pure_c/Makefile romloader/Makefile Makefile)

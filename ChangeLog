@@ -1,0 +1,119 @@
+Oct 03 2001 by Bluefyre:
+
+    Realised the named stuff is worse than useless unless the debugger dumps
+    stuff with those names too, so i made it do that.
+
+    Fixed a bug in my symlink makefile thing
+
+    Hacked with the romloader so you can run it from cpucore_pure_c/ now
+    without it complaining it can't find the libs
+
+Oct 02 2001 by Bluefyre:
+
+    Miscellaneousness, I made it make the symlink to loader automatically
+
+    The debugger now shows you the register names not numbers
+
+Aug 22 2001 by HCl:
+
+    (Note that we haven't been able to do a lot because the cvs server has 
+     been down)
+
+    Additions:
+
+    cpucore_pure_c:
+        
+    a crude debugger :))) (libcpu.c, maybe move to it's own sourcefile)
+
+    commands: run next breakpoint show dumpregs help quit
+
+Jul 23/24 2001 by HCl:
+
+    Additions:
+
+    Lots of store/load instructions, and a few others
+    massive speed optimizations in store/load instructions -> code much faster
+    optimized CFLAGS
+
+Jul 21/22 2001 by HCl:
+
+    Additions/Optimizations:
+ 
+    cpucore_pure_c:
+
+    added more ram areas
+    added lots of other instructions
+    added dCPU_COP1 support
+    added dCPU_COP1_CFC1
+    added dCPU_COP1_CTC1 
+    added eCPU_COP1_CFC1
+    added eCPU_COP1_CTC1
+    added eCPU_LW
+    added fpr registers of cop1 to registers.h
+    optimized eCPU_SW
+    added CPUdelay slot (omg i can't believe we forgot this)
+	-> code makes much more sense
+
+    Changes:
+
+    cpucore_pure_c:
+
+    fixed comments in registers.h
+    fixed ADDIU in exec.c: sgi people use misleading names for opcodes!
+
+Jul 21 2001 by Bluefyre:
+
+    Additions:
+
+    cpucore_pure_c:
+
+    added eCPU_COP0 support
+    added MFC0/MTC0 (cop0) (cop0_scp.c)
+    added COP0 (exec.c)
+    changed some .h's to match opcodes.h
+    changed opstruct.c to match
+
+    Changes:
+
+    cpucore_pure_c:
+
+    made do_a_dump() dump fgrs (libcpu.c)
+    made do_a_dump() print to stderr (libcpu.c)
+    messed with do_a_dump() to make it look nicer (libcpu.c)
+
+    made a debug_do_a_dump() for HCl (libcpu.c)
+    made EXCESSIVE_DEBUG use debug_do_a_dump() (libcpu.c)
+
+    changed the Changelog :O)
+
+Jul 18/19 2001 by HCl: 
+
+    Additions/Optimizations:
+
+    cpucore_pure_c:
+ 
+    added MFC0/MTC0 (cop0) (disass.c)
+    added JAL/JR (exec.c)
+    optimized SLTU (exec.c)
+    optimized BEQ (exec.c)
+    optimized BNE (exec.c
+    added ADDI (exec.c)
+    added RDRAM memory support (experimental) (libcpu.c,exec.c)
+    put ifdef checks around info functions in main_cpu_loop (libcpu.c)
+    added mentioning the PC when disassembling an instruction (libcpu.c)
+    Error handling optimized (libcpu.c)
+		  
+    Fixes:
+  
+    romloader:
+  
+    load_module.h missing  -> fixed
+    bad,sloppy asm code in fix_rom_name -> fixed: replaced with C code 	
+
+    cpucore_pure_c:
+
+    counting of instructions disassembled -> fixed
+    instruction pointer didn't use native addys -> jumps broken -> fixed
+    instruction pointer advanced after jump -> jumps broken -> fixed
+    eCPU_BEQ, eCPU_BNE didn't add 4 to the jump addy -> fixed
+    dCPU_JAL* : didn't shift target left by 2 -> fixed

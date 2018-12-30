@@ -1,0 +1,3 @@
+Make dma transfers realtime
+Implement interrupts
+Implement exceptions
