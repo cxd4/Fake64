@@ -6,18 +6,28 @@
 #include "opcodes.h"
 #include <memory.h>
 
-#define USE_DEBUGGER 1
+#include "module.h"
+#include "debugger.h"
+#include "config_options.h"
+
+#include "linking.h"
 
 //#define DEBUG 1
 //#define EXCESSIVE_DEBUG 1
 
 void sig_stop_run();
+extern void apply_patches();
+
+extern struct sdebugger debugger;
+
+void do_a_dump();
+void debug_do_a_dump();
 
 #ifndef GPROF
-
 char *module_id(void)
-{ return("N64 pure C interpreter cpu core (Version 0.00000002 by Bluefyre and HCl)"); }
-
+{
+	return("N64 pure C interpreter cpu core (Version 0.00000002 by Bluefyre and HCl)");
+}
 #endif
 
 extern cpu_instruction dcpu_instr[64];
@@ -29,10 +39,12 @@ extern cpu_instruction ecpu_special[64];
 extern cpu_instruction ecpu_regimm[32];
 
 extern FILE* disfd; // fp for disassembled output
-extern int print;
 
 extern void CheckInterrupts();
 extern uint8 PossibleInterrupt;
+
+
+struct module_info* modules;
 
 struct cpu_reg reg;
 struct rom *currentrom;
@@ -41,23 +53,24 @@ int othertask=0;
 uint32 op;
 uint64 rpc=0;
 
-
-void init_pifram(uint8 *here);
 extern char* reg_names[];
 
 void debugger_step(void);
 
-void main_cpu_loop(struct rom *rom)
+void main_cpu_loop(struct rom *rom,struct module_info* mods)
 {
-#if DEBUG || USE_DEBUGGER
+	uint32 i=0,crc=0;
+#ifdef DEBUG
 	int disasmcount=0;
 #endif
 	int ret;
-	uint32 addr2;
+	uint32 addr2;							
 	currentrom=rom;
 	alloc_memory(rom);
 
-	init_pifram(PIFMEM);
+	modules=mods;
+
+	init_pifram(modules, PIFMEM);
 	
 // setup disassemble output to stdout
   disfd=stdout;
@@ -110,16 +123,52 @@ void main_cpu_loop(struct rom *rom)
 //    MI_VERSION_REG_R = 0x01010101;
 	reg.CPUdelayPC=0; reg.CPUdelay=0;
 
+
+
 	// copy bootcode to SP_DMEM
 	memcpy((void *)(RAM_OFFSET_MAP[0x400]+0x4000000),rom->header,0x1000); 
-	reg.pc=0xffffffffa4000040; // bootcode
+	
+
+
+  //reg.pc=0xFFFFFFFF00000000+ *((int32*)(RAM_OFFSET_MAP[0x400]+0x4000008));
+  reg.pc=0xffffffffa4000040; // bootcode
 	ret = 0;
 	reg.gpr0[9] = 0;
 	lerror=0;
 
-	while(lerror==0) {
-		rpc=reg.pc&0x1fffffff;
-		op=*((uint32 *)(rpc+RAM_OFFSET_MAP[(rpc)>>16]));
+
+// do crc of boot code and set CIC accordinly
+	crc=0;
+	for (i=0;i<1008;i++)
+	{
+		crc+=*((uint32*)(RAM_OFFSET_MAP[0x400]+0x4000040+i));
+	}			
+  switch(crc)
+	{
+	case 0x98f85f89:
+		reg.gpr[0x16] = 0x3f;
+  		break;
+	case 0x13fd446f:				
+		reg.gpr[0x16] = 0x91;
+  		break;
+	case 0xb31279a3:
+		reg.gpr[0x16] = 0x78;
+  		break;
+	case 0xe645acd6:
+		reg.gpr[0x16] = 0x85;
+  		break;
+	default:
+		printf("Unknown bootloader crc 0x%lx\n",crc);
+		break;
+	}
+
+	if (patches_active) {
+		apply_patches();
+	}
+
+	while(lerror==0)
+	{
+
 #if 0
 		if(!op)
 	 	 {
@@ -136,21 +185,48 @@ void main_cpu_loop(struct rom *rom)
 		 }
 #endif
 
-#if DEBUG || USE_DEBUGGER
-	if(print) {
-		printf("0x%.8x: <0x%.8x>	",(uint32)reg.pc,op);
+
+
+
+                rpc=reg.pc&0x1fffffff;
+                op=*((uint32 *)(rpc+RAM_OFFSET_MAP[(rpc)>>16]));
+
+#ifdef DEBUG
+	if(debugger.print) {
+		printf("0x%.8x: <0x%.8x> ",(uint32)reg.pc,op);
         	dcpu_instr[opcode(op)>>26]();
 		fflush(stdout);
 		disasmcount++;
 	  }
 #endif
 
-#ifdef USE_DEBUGGER
+#ifdef DEBUG
 		debugger_step();
 #endif
+    		ecpu_instr[opcode(op)>>26]();
+		reg.gpr0[9]+=counter_factor;
 
-    ecpu_instr[opcode(op)>>26]();
-		
+          switch (reg.CPUdelay)
+           {
+            case 0 :    reg.pc += cpu_step; break;
+            case 1 :    reg.pc += cpu_step; reg.CPUdelay = 2; break;
+            default:    reg.pc = reg.CPUdelayPC; reg.CPUdelay = 0; break;
+           }
+
+	if(reg.gpr0[9]==reg.VInextInt)
+	{
+    	  GenerateInterrupt(MI_INTR_VI);
+    	  reg.VInextInt+=625000;
+  	}
+
+  	if ((uint32)reg.gpr0[9]==(uint32)reg.gpr0[11]&&(uint32)reg.gpr0[9])
+  	  { printf("Timer interrupt generated: count: 0x%x compare:0x%x\n",(uint32)reg.gpr0[9],(uint32)reg.gpr0[11]);
+ 	    GenerateTimerInterrupt();
+	  }
+
+        if (PossibleInterrupt)
+          CheckInterrupts();
+
     while(othertask)
      {
 	if(othertask&OTHER_PIF)
@@ -168,6 +244,16 @@ void main_cpu_loop(struct rom *rom)
 	   PI_DMA_Transfer_WR();
 	   othertask&=~OTHER_DMA_WR;
 	 }
+        else if (othertask&OTHER_SP_DMA_RD)
+         {
+	   SP_DMA_Transfer_RD();
+           othertask&=~OTHER_SP_DMA_RD;
+         }
+        else if (othertask&OTHER_SP_DMA_WR)
+         {
+	   SP_DMA_Transfer_WR();
+           othertask&=~OTHER_SP_DMA_WR;
+         }
 	else if (othertask&OTHER_SI_DMA_RD)
 	 {
            si_dma_transfer_read();
@@ -180,11 +266,10 @@ void main_cpu_loop(struct rom *rom)
          }
 	else if (othertask&OTHER_AI)
 	 {
-	   addr2=*((uint32 *)(AIREGS))&0x1fffffff;
+	   addr2=(*((uint32 *)(AIREGS)))&0x1fffffff;
            ai_dma_request(AIREGS,addr2+RAM_OFFSET_MAP[addr2>>16]);
 			othertask&=~OTHER_AI;
 	 }
-
      }
 
 
@@ -196,30 +281,8 @@ void main_cpu_loop(struct rom *rom)
 // deal with interrupts/exceptions after updating delay so we can really tell if we're in a slot
 
 
-	if(reg.gpr0[9]==reg.VInextInt)
-	{
-    GenerateInterrupt(MI_INTR_VI);
-    reg.VInextInt+=625000;
-  }
-
-  if (reg.gpr0[9]==reg.gpr0[11]&&reg.gpr0[9])
-      GenerateTimerInterrupt();
-
-  if (PossibleInterrupt && (reg.CPUdelay==2 || reg.CPUdelay==0))
-     CheckInterrupts();
-
 
 //	  vi_display(VIREGS,(uint8*)(*((uint32*)(VIREGS+4))+RAM_OFFSET_MAP[*((uint32*)(VIREGS+4))>>16]));
-
-          switch (reg.CPUdelay)
-           {
-            case 0 :    reg.pc += cpu_step; break;
-            case 1 :    reg.pc += cpu_step; reg.CPUdelay = 2; break;
-            default:    reg.pc = reg.CPUdelayPC; reg.CPUdelay = 0; break;
-           }
-
-  reg.gpr0[9]++;
-
 	}
 	do_a_dump();
 	printf("execution ended at 0x%x\n",reg.pc);
@@ -227,12 +290,12 @@ void main_cpu_loop(struct rom *rom)
         dcpu_instr[opcode(op)>>26]();
         fflush(stdout);	
 	printf("%i instructions executed\n", reg.gpr0[9]);
-#if DEBUG || USE_DEBUGGER
+#ifdef DEBUG
         printf("%i instructions disassembled\n",disasmcount);
 #endif
 }
 
-int debug_do_a_dump() {
+void debug_do_a_dump() {
 
 	int i;
 	printf("GPRs:\n");
@@ -245,36 +308,36 @@ int debug_do_a_dump() {
 	printf("\n");
 }
 
-int do_a_dump()
+void do_a_dump()
 {
 	int i;
-	fprintf(stderr, "GPRs:\n");
+	fprintf(stdout, "GPRs:\n");
 	for(i = 0; i < 16; i++) {
-		fprintf(stderr, "$%s: 0x%.16llx   ", reg_names[i], reg.gpr[i]);
-		fprintf(stderr, "$%s: 0x%.16llx   ",reg_names[i+16],reg.gpr[i+16]);
-			fprintf(stderr, "\n");
+		fprintf(stdout, "$%s: 0x%.16llx   ", reg_names[i], reg.gpr[i]);
+		fprintf(stdout, "$%s: 0x%.16llx   ",reg_names[i+16],reg.gpr[i+16]);
+			fprintf(stdout, "\n");
 	}
 
-	fprintf(stderr, "FPRs:\n");
+	fprintf(stdout, "FPRs:\n");
 	for(i = 0; i < 16; i++) {
-		fprintf(stderr, "$f%d: 0x%.16llx   ", i, reg.gpr1[i]);
-		fprintf(stderr, "$f%d: 0x%.16llx   ",i+16,reg.gpr1[i+16]);
-			fprintf(stderr, "\n");
+		fprintf(stdout, "$f%d: 0x%.8x   ", i, reg.gpr1[i]);
+		fprintf(stdout, "$f%d: 0x%.8x   ",i+16,reg.gpr1[i+16]);
+			fprintf(stdout, "\n");
 	}
 
 
-	fprintf(stderr,"\n");
-        fprintf(stderr, "Hi:  0x%.16llx   Lo:  0x%.16llx   \n",reg.HI,reg.LO);
-	fprintf(stderr, "\n-----------\n\n");
+	fprintf(stdout,"\n");
+        fprintf(stdout, "Hi:  0x%.16llx   Lo:  0x%.16llx   \n",reg.HI,reg.LO);
+	fprintf(stdout, "\n-----------\n\n");
 
-	fprintf(stderr, "COP0 GPRs:\n");
+	fprintf(stdout, "COP0 GPRs:\n");
 	for(i = 0; i <= 31; i++) {
-		fprintf(stderr, "$%2i: 0x%.16llx   ", i, reg.gpr0[i]);
+		fprintf(stdout, "$%2i: 0x%.16llx   ", i, reg.gpr0[i]);
 		if ((i % 3) == 2) {
-			fprintf(stderr, "\n");
+			fprintf(stdout, "\n");
 		}
 	}
-	fprintf(stderr, "\n");
+	fprintf(stdout, "\n");
 }
 /* old one
 int do_a_dump()

@@ -1,0 +1,8 @@
+LIBRARY BFs_InputModule
+EXPORTS 
+   
+		config_module  
+		module_id
+
+		pifram_interrupt
+		init_pifram

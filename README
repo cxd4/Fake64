@@ -1,7 +1,116 @@
-if you don't want to make install, you should ./configure --enable-notinstalled 
+				Fake64
+				======
 
-if you do make install, the modules should be located automatically
+What is fake64?
+---------------
 
-tar xvIf testrom.tar.bz2 will give you something to test it on
+Fake64 is an n64 emulator for linux which is currently in the early stages of
+development. However, most of the basic features are fully implemented and many
+more advanced ones such as 3d graphics are at least partially in place.
 
-then you can run either ./loader or /usr/local/bin/fake64 depending on whether you make installed or not.
+It is licensed under the GPL.
+
+What do i need to run it?
+-------------------------
+
+Fake64 requires a reasonably modern linux system with the following:
+
+	X, XFree86 => 4.0.0 with DRI recommended (http://www.xfree86.org)
+	A GL implementation, usually provided with X
+	A GLU implementation, usually provided with X
+	SDL, => 1.1.0 recommended (http://www.libsdl.org)
+	All the usual compiling tools, cc, ld, etc ...
+
+Additionally, if you are building from cvs you will require automake and
+autoconf.
+
+From a hardware point of view, fake64 will run on a wide variety of hardware
+specs. At the moment, the limitations on hardware are an x86
+system with mmx support. Obviously the faster your computer, the faster fake64
+will go, but you don't need a supercomputer to see reasonable results.
+
+The most important factor affecting performance, is hardware accelleration.
+Getting hardware accelleration set up in linux is a complex subject due to the
+wide variety of hardware available. A good resource for the most common cards
+is available at the dri project website (http://dri.sourceforge.net).
+
+Where can I get it?
+-------------------
+
+You can obtain fake64 in various ways from our website, which currently resides
+at http://insomniac.ath.cx:81/~bluefyre/
+
+Okay, I've downloaded it, now what?
+-----------------------------------
+
+For instructions on installing fake64, please read the file INSTALL in this
+directory.
+
+Some non-commercial demo roms are distributed with fake64 in the file
+testroms.tar.bz2, which can be extracted with the command:
+
+	tar xvIf testroms.tar.bz2
+
+Please note that the authors of fake64 in no way encourage you to break the law
+by illegally obtaining commercial roms, we give you a stick, but we don't make
+you hit people with it, or something.
+
+For more information on what roms fake64 can run, see the compatability list
+on the site.
+
+How can I customise fake64?
+---------------------------
+
+Fake64 contains a flexible runtime configuration system. It reads commands from
+a file ~/.fake64rc
+
+For examples of what you can put in this file, see sample.fake64rc.
+
+Please note that at present, the configuration parsing isn't particularly
+resilient, so if you try and do funny things with formatting, expect segfaults.
+
+Here is a list of some of the most common things to do in a fake64rc:
+
+	SetDefault - Establishes a default section to run for all roms
+	SetRom - Establishes a section to run for an individual rom file
+
+	Section - Defines a section
+	Include - Includes a section
+	LoadModule - Loads a module
+	Debug - Sets a debug level, only if compiled --enable-debug
+	Option - sends an option
+
+Option is probably the most used command, and options are generally formatted:
+
+	Option [module] [option] [value]
+
+For example:
+
+	Option video 2d 0
+
+To turn off 2d.
+
+Most options can be given either a 0 or 1 as a value to turn the feature on or
+off. Some accept any number, or take several values.
+
+Here are some commonly used options:
+
+	video:
+		width [number] - set window width
+		height [number] - set window height
+		fpslimiter [0|1] - turn on fps limiter (a little iffy)
+		fpslimit [number] - set fps limit
+		2d [0|1] - set 2d on or off
+
+	cpu:
+		run [0|1] - start immediately?
+		cf [number] - set counter factor (1-10 recommended)
+		patch [address] [value] - apply patch
+		patches [0|1] - activate patches
+
+	input:
+		mapkey [controller] [button] [scancode] - map a key
+		resetmaps - reset all keymaps
+		mapstick[x|y] [controller] [value] [scancode] - map to analogue
+		controllers [1-8] - number of controllers active
+

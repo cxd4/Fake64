@@ -1,9 +1,12 @@
+#define ROMLOADER
+
 #include <stdio.h>
-#include <dirent.h>
+#include <stdlib.h>
 #include <general.h>
 #include <romheader.h>
-#include <load_module.h>
+#include <module.h>
 
+#include <dirent.h>
 #include <sys/stat.h>
 #include <unistd.h>
 
@@ -28,29 +31,38 @@
 	extern void ai_deinit();
 #endif
 
+struct module_info  modules;		// holds pointers to all the modules loaded
+/*
 cpu_module *cpu;
 input_module *input;
 video_module *video;
 audio_module *audio;
+*/
 
-extern void read_config(int, struct rom*, char*);
-extern char* get_module_id(char*);
+void read_config(int, struct rom*, char*);
+char* get_module_id(char*);
+void byteswap(int Size, uint8* Image);
+
 
 void *dmalloc(int size)
-{ void *t;
-  t=(void *)calloc(1,size);
-  #ifdef DEBUG
-   fprintf(stderr,"Allocated memblock: 0x%x\n",t);
-  #endif
-  return(t);
+{
+	static void *t;
+	t=(void *)calloc(1,size);
+	#ifdef DEBUG
+	if (t)
+		printf("Allocated memblock: 0x%x\n",t);
+	else
+		printf("Failed to allocate block of size %d\n",size);
+	#endif
+	return(t);
 }
 
 void dfree(void *t)
 {
-  #ifdef DEBUG
-   fprintf(stderr,"Freeing memblock: 0x%x\n",t);
-  #endif
-  free(t);
+#ifdef DEBUG
+	printf("Freeing memblock: 0x%x\n",t);
+#endif
+	free(t);
 }
 
 void fix_rom_name(char *name)
@@ -85,13 +97,13 @@ struct rom * load_n64_rom(char *filename)
    }
   fseek(fp,0,SEEK_END);
   length=ftell(fp);
-  if(!(rom=(uint8 *) dmalloc(length)))
+  if(!(rom=(uint8 *) calloc(1,length>=0x800000 ? length : 0x800000)))
    { perror("load_n64_rom");
      printf("Cannot allocate memory.....\n");
      exit(-1);
    }
   if(length % 8)
-   fprintf(stderr,"Warning: Length of rom isn't a multiple of 8\n");
+   printf("Warning: Length of rom isn't a multiple of 8\n");
   rewind(fp);
   bytes=fread(rom,1,length,fp);
   printf("Rom loaded.. %d/%d bytes read\n",bytes,length);
@@ -117,9 +129,9 @@ void dumpheader(struct rom *rom)
   printf("Name: %s\nManufacturer: 0x%x ",rom->name,rom->manufacturer);
   if (rom->manufacturer==0x4e)
     printf("(Nintendo)");
-  printf("\n");
+    printf("\n");
 
-  printf("Cardridge ID: 0x%x\nCountry Code: 0x%x ",rom->cardridge_id,rom->country_code);
+  printf("Cartridge ID: 0x%x\nCountry Code: 0x%x ",rom->cardridge_id,rom->country_code);
   switch(rom->country_code)
    {
      case 0x4400: printf("(Germany)"); break;
@@ -189,50 +201,54 @@ main(int argc,char **argv)
 { struct rom *romstruct;
   char buf[200];
 
+  modules.printd_f = _printd;
+  modules.test_debug_f = _test_debug;
+  init_debugging();
+
 #ifndef GPROF
 
   romstruct=load_n64_rom(argv[1]);
   dumpheader(romstruct);
-
+  fflush(stdout);
   read_config(0, romstruct, argv[1]);
 
   				       // add ~/.fake64rc support,eg autoselect 
 				       // a module
-  if (!input) {
-   while(!(input = (input_module *)load_input_module(pick_module(INPUT_DIR))))
+  if (!modules.input) {
+   while(!(modules.input = (input_module *)load_input_module(pick_module(INPUT_DIR))))
     {
       printf("Couldn't load input module\n");
     }
   }
 
-  printf("Input module loaded: %s\n", (*input->module_id)());
+  printf("Input module loaded: %s\n", (*modules.input->module_id_f)());
 
-  if (!audio) {
-   while(!(audio = (audio_module *)load_audio_module(pick_module(AUDIO_DIR))))
+  if (!modules.audio) {
+   while(!(modules.audio = (audio_module *)load_audio_module(pick_module(AUDIO_DIR))))
     {
       printf("Couldn't load audio module\n");
     }
   }
 
-  printf("Audio module loaded: %s\n", (*audio->module_id)());
+  printf("Audio module loaded: %s\n", (*modules.audio->module_id_f)());
 
-  if (!video) {
-   while(!(video = (video_module *)load_video_module(pick_module(VIDEO_DIR))))
+  if (!modules.video) {
+   while(!(modules.video = (video_module *)load_video_module(pick_module(VIDEO_DIR))))
     {
       printf("Couldn't load video module\n");
     }
   }
 
-  printf("Video module loaded: %s\n", (*video->module_id)());
+  printf("Video module loaded: %s\n", (*modules.video->module_id_f)());
 
-  if (!cpu) {
-   while(!(cpu = (cpu_module *)load_cpu_core_module(pick_module(CPU_DIR)))) 
+  if (!modules.cpu) {
+   while(!(modules.cpu = (cpu_module *)load_cpu_core_module(pick_module(CPU_DIR))))
     {
       printf("Couldn't load cpucore module\n");
     }
   }
 
-  printf("Cpu core loaded: %s\n",(*cpu->module_id)());
+  printf("Cpu core loaded: %s\n",(*modules.cpu->module_id_f)());
 
   read_config(1, romstruct, argv[1]);
 
@@ -240,15 +256,15 @@ main(int argc,char **argv)
 
 #ifndef GPROF
 
-  (*video->vi_init)();
+  (*modules.video->vi_init_f)(&modules);
 
-  (*audio->ai_init)();
+  (*modules.audio->ai_init_f)();
   
-  (*cpu->main_cpu_loop)(romstruct);
+  (*modules.cpu->main_cpu_loop_f)(romstruct,&modules);
 
-  (*audio->ai_deinit)();
+  (*modules.audio->ai_deinit_f)();
 
-  (*video->vi_deinit)();
+  (*modules.video->vi_deinit_f)();
 
 #endif
 

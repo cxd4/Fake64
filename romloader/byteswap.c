@@ -1,6 +1,7 @@
 #include <general.h>
 
-void byteswap(int Size, uint8* Image) {
+void byteswap(int Size, uint8* Image)
+{
     int  k;
     uint8 swap[4]; 
 

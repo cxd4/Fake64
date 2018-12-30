@@ -1,4 +1,4 @@
-SUBDIRS = cpucore_pure_c bfs_input_module sliders_video_module bfs_audio_module rs_audio_module romloader cpucore_dynarec
+SUBDIRS = cpucore_pure_c bfs_input_module rs_video_module sliders_video_module bfs_audio_module rs_audio_module romloader cpucore_dynarec testsuite
 EXTRA_DIST = detectmodules.sh fake64rc
 all-local:
 	if [ ! -f ./loader ] ; then ln -s romloader/romloader ./loader; fi
@@ -21,4 +21,4 @@ dist-hook:
 	cp testrom.tar.bz2 $(distdir)
 
 static:
-	gcc romloader/byteswap.c romloader/romloader.c cpucore_pure_c/libcpu.c cpucore_pure_c/cop0_scp.c cpucore_pure_c/cop1_fpu.c cpucore_pure_c/debugger.c cpucore_pure_c/disass.c cpucore_pure_c/exec.c cpucore_pure_c/interrupts.c cpucore_pure_c/memory.c cpucore_pure_c/opstruct.c cpucore_pure_c/reg_names.c sliders_video_module/libvideo.c rs_audio_module/libaudio.c bfs_input_module/libinput.c -o loader_static -pg -I./include -I./romloader -I./cpucore_pure_c -lSDL -lpthread
+	gcc romloader/byteswap.c romloader/romloader.c cpucore_pure_c/libcpu.c cpucore_pure_c/cop0_scp.c cpucore_pure_c/cop1_fpu.c cpucore_pure_c/debugger.c cpucore_pure_c/disass.c cpucore_pure_c/exec.c cpucore_pure_c/interrupts.c cpucore_pure_c/memory.c cpucore_pure_c/opstruct.c cpucore_pure_c/reg_names.c sliders_video_module/libvideo.c rs_audio_module/libaudio.c bfs_input_module/libinput.c -o loader_static -pg -I./include -I./romloader -I./cpucore_pure_c -lSDL -lpthread -lGL -l GLU

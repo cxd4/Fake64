@@ -1,9 +1,11 @@
+#define ROMLOADER
+
 #include <general.h>
 #include <stdio.h>
 #include <fcntl.h>
 #include <stdlib.h>
 #include <string.h>
-#include <load_module.h>
+#include <module.h>
 
 #define CHUNK_SIZE 1024
 #define MAX_PATH_LEN 200
@@ -20,15 +22,14 @@ char input_path[MAX_PATH_LEN];
 char video_path[MAX_PATH_LEN];
 char audio_path[MAX_PATH_LEN];
 
-extern cpu_module *cpu;
-extern input_module *input;
-extern video_module *video;
-extern audio_module *audio;
+
+extern struct module_info  modules;
 
 extern void *load_input_module(char*);
 extern void *load_video_module(char*);
 extern void *load_audio_module(char*);
 extern void *load_cpu_core_module(char*);
+
 
 /*void config_module(char* opt) {
 
@@ -38,37 +39,37 @@ extern void *load_cpu_core_module(char*);
 
 void pre_parse_section(int, char*, char*, char);
 
-void print_configurable() {
-
+void print_configurable()
+{
 	printf("Runtime configuration supported by: ");
 
-	if (input->config_module) {
+	if (modules.input->config_module_f) {
 		printf("input ");
 	}
-	if (video->config_module) {
+	if (modules.video->config_module_f) {
 		printf("video ");
 	}
-	if (audio->config_module) {
+	if (modules.audio->config_module_f) {
 		printf("audio ");
 	}
-	if (cpu->config_module) {
+	if (modules.cpu->config_module_f) {
 		printf("cpu ");
 	}
 
 	printf("\n");
 }
 
-void do_module_loading() {
-
-	input = (input_module*)load_input_module(input_path);
-	audio = (audio_module*)load_audio_module(audio_path);
-	video = (video_module*)load_video_module(video_path);
-	cpu = (cpu_module*)load_cpu_core_module(cpu_path);
-
+void do_module_loading()
+{
+	modules.input = (input_module*)load_input_module(input_path);
+	modules.audio = (audio_module*)load_audio_module(audio_path);
+	modules.video = (video_module*)load_video_module(video_path);
+	modules.cpu = (cpu_module*)load_cpu_core_module(cpu_path);
 }
 
-char* tonextline(char *ptr) {
-	ptr = index(ptr, '\n') + 1;
+char* tonextline(char *ptr)
+{
+	ptr = strchr(ptr, '\n') + 1;
 	return ptr;
 }
 
@@ -101,28 +102,71 @@ char* seek_section(char *data, char *section) {
 	}
 }
 
+void parse_debug(char *set) {
+
+	char *next;
+	debug_type type;
+	debug_level level;
+
+	next = strchr(set, ' ') + 1;
+
+	if (!strncasecmp(set, "user ", 5)) { type = D_USER; }
+	else if (!strncasecmp(set, "disass ", 7)) { type = D_DISASS; }
+	else if (!strncasecmp(set, "rsp ", 4)) { type = D_RSP; }
+	else if (!strncasecmp(set, "rdp ", 4)) { type = D_RDP; }
+	else if (!strncasecmp(set, "rcp ", 4)) { type = D_RCP; }
+	else if (!strncasecmp(set, "mi ", 3)) { type = D_MI; }
+	else if (!strncasecmp(set, "vi ", 3)) { type = D_VI; }
+	else if (!strncasecmp(set, "ai ", 3)) { type = D_AI; }
+	else if (!strncasecmp(set, "pi ", 3)) { type = D_PI; }
+	else if (!strncasecmp(set, "ri ", 3)) { type = D_RI; }
+	else if (!strncasecmp(set, "si ", 3)) { type = D_SI; }
+	else if (!strncasecmp(set, "video ", 6)) { type = D_VIDEO; }
+	else if (!strncasecmp(set, "audio ", 6)) { type = D_AUDIO; }
+	else if (!strncasecmp(set, "input ", 6)) { type = D_INPUT; }
+	else if (!strncasecmp(set, "cpu ", 4)) { type = D_CPU; }
+
+	if (!strncasecmp(next, "debug", 5)) { level = D_DEBUG; }
+	else if (!strncasecmp(next, "info", 4)) { level = D_INFO; }
+	else if (!strncasecmp(next, "notice", 6)) { level = D_NOTICE; }
+	else if (!strncasecmp(next, "warn", 4)) { level = D_WARN; }
+	else if (!strncasecmp(next, "error", 5)) { level = D_ERROR; }
+	else if (!strncasecmp(next, "crit", 4)) { level = D_CRIT; }
+	else if (!strncasecmp(next, "emerg", 5)) { level = D_EMERG; }
+	else if (!strncasecmp(next, "fatal", 5)) { level = D_FATAL; }
+
+	set_debug(type, level);
+
+}
+
 void pass_option(char *opt) {
 
 	int optlen;
 	char *optstor;
 
-	optlen = (int)(index(opt, '\n') - opt);
+	optlen = (int)(strchr(opt, '\n') - opt);
 
 	optstor = malloc(optlen + 1);
 	memset(optstor, 0x00, optlen+1);
 
 	if (!strncasecmp(opt, "input ", 6)) {
 		strncpy(optstor, opt + 6, optlen - 6);
-		if (input->config_module) { input->config_module(optstor); }
+		if (modules.input->config_module_f) { modules.input->config_module_f(optstor); }
 	} else if (!strncasecmp(opt, "video ", 6)) {
 		strncpy(optstor, opt + 6, optlen - 6);
-		if (video->config_module) { video->config_module(optstor); }
+		if (modules.video->config_module_f) { modules.video->config_module_f(optstor); }
 	} else if (!strncasecmp(opt, "audio ", 6)) {
 		strncpy(optstor, opt + 6, optlen - 6);
-		if (audio->config_module) { audio->config_module(optstor); }
+		if (modules.audio->config_module_f) { modules.audio->config_module_f(optstor); }
 	} else if (!strncasecmp(opt, "cpu ", 4)) {
 		strncpy(optstor, opt + 4, optlen - 4);
-		if (cpu->config_module) { cpu->config_module(optstor); }
+		if (modules.cpu->config_module_f) { modules.cpu->config_module_f(optstor); }
+	} else if (!strncasecmp(opt, "all ", 4)) {
+		strncpy(optstor, opt + 4, optlen - 4);
+		if (modules.cpu->config_module_f) { modules.cpu->config_module_f(optstor); }
+		if (modules.audio->config_module_f) { modules.audio->config_module_f(optstor); }
+		if (modules.video->config_module_f) { modules.video->config_module_f(optstor); }
+		if (modules.input->config_module_f) { modules.input->config_module_f(optstor); }
 	}
 
 	free(optstor);
@@ -132,7 +176,7 @@ void store_module_conf(char* info) {
 
 	int infolen;
 
-	infolen = (int)(index(info, '\n') - info);
+	infolen = (int)(strchr(info, '\n') - info);
 
 	if (infolen > MAX_PATH_LEN) {
 		printf("PATH TOO LONG!\n");
@@ -168,9 +212,9 @@ void parse_section(int phase, char *data, char *section) {
 		exit(0);
 	}
 
-	secptr = index(secptr, '{');
+	secptr = strchr(secptr, '{');
 
-	while(index(secptr, '}') > (secptr = tonextline(secptr))) {
+	while(strchr(secptr, '}') > (secptr = tonextline(secptr))) {
 		while(secptr[0] == '\t' || secptr[0] == ' ') { secptr++; }
 		if (!strncasecmp(secptr, "LoadModule ", 11)) {
 			if (!phase) { store_module_conf(secptr+11); }
@@ -178,6 +222,8 @@ void parse_section(int phase, char *data, char *section) {
 			pre_parse_section(phase, data, secptr+8, '\n');
 		} else if (!strncasecmp(secptr, "Option ", 7)) {
 			if (phase) { pass_option(secptr+7); }
+		} else if (!strncasecmp(secptr, "Debug ", 6)) {
+			if (phase) { parse_debug(secptr + 6); }
 		}
 	}
 }
@@ -187,7 +233,7 @@ void pre_parse_section(int phase, char *data, char *section, char expect) {
 	int len;
 	char *secname;
 
-	len = (int)(index(section, expect) - section);
+	len = (int)(strchr(section, expect) - section);
 
 	secname = malloc(len+1);
 	memset(secname, 0, len+1);
@@ -252,7 +298,6 @@ char* seek_section_ptr(char *search, char *data) {
 void parse_default_section(int phase, char *data) {
 
 	char *defptr;
-	int len;
 
 	defptr = seek_section_ptr("SetDefault ", data);
 
@@ -289,7 +334,7 @@ void read_config(int phase, struct rom *header, char *romfile) {
 	FILE *conf;
 	FILE *gconf;
 
-	char *data;
+	char *data, *romname;
 	int dsize = 0;
 	int files = 0;
 
@@ -318,9 +363,14 @@ void read_config(int phase, struct rom *header, char *romfile) {
 		if (phase) { print_configurable(); }
 
 		parse_default_section(phase, data);
-		parse_rom_section(phase, data, romfile);
 
-		do_module_loading();
+		romname = (strrchr(romfile, '/')+1);
+
+		if (romname ==(char*) 1) { romname = romfile; }
+
+		parse_rom_section(phase, data, romname);
+
+		if (!phase) { do_module_loading(); }
 
 		free(data);
 	}

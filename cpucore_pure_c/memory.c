@@ -107,7 +107,7 @@ void init_memory(int romlength)
   for(i=0;i<0x2000;i++)
    RAM_OFFSET_MAP[i]=0;
 
-  for(i=0;i<=(0x03ffffff>>16);i++)
+  for(i=0;i<=(RAM_SIZE>>16);i++)
    RAM_OFFSET_MAP[i]=(int)RDRAM; 
   
   for(i=0x1000;i<=(romlength+0x10000000)>>16;i++)   
@@ -134,5 +134,11 @@ void init_memory(int romlength)
   RAM_OFFSET_MAP[0x1fc0]=(int)PIFMEM-0x1fc00000;
   printf("%x:%x\n", PIFMEM, RAM_OFFSET_MAP[0x1fc0]+0x1fc00000);
   RAM_OFFSET_MAP[0x1fd0]=(int)C1A3-0x1fd00000;
+
+}
+
+void* translate_addr(uint32 addr) {
+
+	return (void*)(addr + RAM_OFFSET_MAP[addr>>16]);
 
 }

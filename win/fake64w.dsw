@@ -1,0 +1,134 @@
+Microsoft Developer Studio Workspace File, Format Version 6.00
+# WARNING: DO NOT EDIT OR DELETE THIS WORKSPACE FILE!
+
+###############################################################################
+
+Project: "BFs_AudioModule"=..\BFS_AUDIO_MODULE\win\BFs_AudioModule.dsp - Package Owner=<4>
+
+Package=<5>
+{{{
+}}}
+
+Package=<4>
+{{{
+}}}
+
+###############################################################################
+
+Project: "BFs_InputModule"=..\BFS_INPUT_MODULE\win\BFs_InputModule.dsp - Package Owner=<4>
+
+Package=<5>
+{{{
+}}}
+
+Package=<4>
+{{{
+}}}
+
+###############################################################################
+
+Project: "CPU_C"=..\CPUCORE_PURE_C\win\CPU_C.dsp - Package Owner=<4>
+
+Package=<5>
+{{{
+}}}
+
+Package=<4>
+{{{
+}}}
+
+###############################################################################
+
+Project: "CPU_Dyna"=..\CPUCORE_DYNAREC\win\CPU_Dyna.dsp - Package Owner=<4>
+
+Package=<5>
+{{{
+}}}
+
+Package=<4>
+{{{
+}}}
+
+###############################################################################
+
+Project: "ROMLoader"=..\ROMLOADER\WIN\ROMLoader.dsp - Package Owner=<4>
+
+Package=<5>
+{{{
+}}}
+
+Package=<4>
+{{{
+    Begin Project Dependency
+    Project_Dep_Name BFs_AudioModule
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name BFs_InputModule
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name CPU_C
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name CPU_Dyna
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name rs_VideoModule
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name Sliders_VideoModule
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name SDL_AudioModule
+    End Project Dependency
+}}}
+
+###############################################################################
+
+Project: "SDL_AudioModule"=..\SDL_AUDIO_MODULE\win\SDL_AudioModule.dsp - Package Owner=<4>
+
+Package=<5>
+{{{
+}}}
+
+Package=<4>
+{{{
+}}}
+
+###############################################################################
+
+Project: "Sliders_VideoModule"=..\SLIDERS_VIDEO_MODULE\win\Sliders_VideoModule.dsp - Package Owner=<4>
+
+Package=<5>
+{{{
+}}}
+
+Package=<4>
+{{{
+}}}
+
+###############################################################################
+
+Project: "rs_VideoModule"=..\RS_VIDEO_MODULE\win\rs_VideoModule.dsp - Package Owner=<4>
+
+Package=<5>
+{{{
+}}}
+
+Package=<4>
+{{{
+}}}
+
+###############################################################################
+
+Global:
+
+Package=<5>
+{{{
+}}}
+
+Package=<3>
+{{{
+}}}
+
+###############################################################################
+

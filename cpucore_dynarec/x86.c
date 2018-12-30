@@ -18,17 +18,17 @@ char *regnames[] =
 
 void W8(uint8 value)
 { *((uint8 *)(codeblockpointer))=value;
-  codeblockpointer++;
+  ((char*)codeblockpointer)++;
 }
 
 void W16(uint16 value)
 { *((uint16 *)(codeblockpointer))=value;
-  codeblockpointer+=2;
+  ((char*)codeblockpointer)+=2;
 }
 
 void W32(uint32 value)
 { *((uint32 *)(codeblockpointer))=value;
-  codeblockpointer+=4;
+  ((char*)codeblockpointer)+=4;
 }
 
 // opcodes, <op> <dest>, <src> form (when printing)
@@ -299,7 +299,6 @@ void ORI(uint8 reg,uint32 data)
 
 void XOR(uint8 reg1,uint8 reg2)
 {
-  if(reg1==reg2) return; // small optimization
   W8(0x33);
   W8(0xC0 | (reg1<<3) | reg2);
 #ifdef DEBUG
@@ -338,12 +337,43 @@ void ADD(uint8 reg1,uint8 reg2)
 
 void ADDI(uint8 reg, uint32 data)
 {
-  W8(0x81);
-  W8(0xC0|reg);
-  W32(data);
+/*
+  if(data<=0xff)
+   {
+     W8(0x83);
+     W8(0xC0|reg);
+     W8(data);     
+   }
+  else
+*/   {
+     W8(0x81);
+     W8(0xC0|reg);
+     W32(data);
+   }
 
 #ifdef DEBUG
   printf("ADD %s, 0x%x\n",regnames[reg],data);
+#endif
+}
+
+void ADD_MemToEAX(void *addr)
+{
+  W8(0x03);
+  W8(0x05);
+  W32((uint32)addr);
+#ifdef DEBUG
+  printf("ADD EAX, [0x%x]\n",addr);
+#endif
+}
+
+void ADD_ImmToMem(void *addr,uint32 data)
+{
+   W8(0x81);
+   W8(0x05);
+   W32((uint32)addr);
+   W32(data);
+#ifdef DEBUG
+   printf("ADD [0x%x], $0x%x\n",addr,data);
 #endif
 }
 
@@ -381,3 +411,4 @@ void BT32_RegWithImm(void *addr,uint8 data)
   printf("BT32 [0x%x],0x%x\n",addr,data);
 #endif
 }
+

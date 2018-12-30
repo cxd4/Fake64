@@ -1,4 +1,7 @@
-struct rom {
+#ifndef ROMHEADER_H
+#define ROMHEADER_H
+struct rom
+{
  uint8 PI_BSB_DOM1_PGS_REG2; // 0x80
  uint8 PI_BSB_DOM1_PWD_REG; // 0x37
  uint8 PI_BSB_DOM1_PGS_REG; // 0x12
@@ -19,3 +22,4 @@ struct rom {
  uint8 *progcode;
  int length;
 };
+#endif

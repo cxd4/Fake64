@@ -1,13 +1,13 @@
-#include <config.h>
+#ifndef WIN32
+	#include <config.h>
+#endif
+
 #include <general.h>
 #include <SDL.h>
 #include <controller.h>
+#include <module.h>
 
 #define KEY_EVENTMASK (SDL_KEYDOWNMASK | SDL_KEYUPMASK)
-
-static char *button_names[16] = {
-	"right", "left", "down", "up", "a", "b", "z", "start", "cup", "cdown",
-	"cleft", "cright", "unf unf", "xphantom", "pleft", "pright" };
 
 uint8 *PIFMEM;
 uint8 *PIFRAM;
@@ -15,73 +15,40 @@ uint8 *PIFRAM;
 int inited = 0;
 int joys_connected = 1;
 
-struct cont_state conts[8];
+struct module_info* modules;
 
-extern int run;
+#ifdef WIN32
+	#ifdef _DEBUG 
+		int debug_pif = 1;
+	#else
+		int debug_pif = 0;
+	#endif
+#else
+	int debug_pif = 0;
+#endif
+
+	
+struct cont_state conts[8];
 
 void init_keymap();
 void reset_keymaps();
+void update_pifram();
 
 #ifndef GPROF
 
-char *module_id(void) {
-	return("Bluefyre's basic input core (SDL)");
+char *module_id(void)
+{
+#ifdef _DEBUG
+	return("Bluefyre's basic SDL input core (DEBUG)");
+#else
+	return("Bluefyre's basic SDL input core ");
+#endif
 }
 
 #endif
 
-void config_module(char* conf) {
-
-	int conflen, i;
-	char *cont, *button, *scancode;
-	int co, buttonid, scan;
-
-	conflen = strlen(conf);
-
-	for (i = 0; i < conflen; i++) {
-		if (conf[i] == ' ') { conf[i] = 0; }
-	}
-
-	if (!strcasecmp(conf, "mapkey")) {
-		if (!inited) { reset_keymaps(); inited = 1; }
-		cont = conf + 7;
-		button = cont + strlen(cont) + 1;
-		scancode = button + strlen(button) + 1;
-
-		co = strtoul(cont, NULL, 10);
-		scan = strtoul(scancode, NULL, 10);
-
-		buttonid = 0;
-
-		for (i = 0; i < 16; i++) {
-			if (!strcasecmp(button, button_names[i])) {
-				buttonid = i;
-			}
-		}
-
-		if (scan) {
-			conts[co].keymap[scan] = buttonid;
-		}
-	} else if (!strcasecmp(conf, "resetmaps")) {
-		reset_keymaps();
-		inited = 1;
-	} else if (!strncasecmp(conf, "mapstick", 8)) {
-		cont = conf + 10;
-		button = cont + strlen(cont) + 1;
-		scancode = button + strlen(button) + 1;
-		co = strtoul(cont, NULL, 10);
-		buttonid = strtoul(button, NULL, 0);
-		scan = strtoul(scancode, NULL, 10);
-		
-		if (conf[8] == 'x') {
-			conts[co].xstickmap[scan] = buttonid;
-		} else if (conf[8] == 'y') {
-			conts[co].ystickmap[scan] = buttonid;
-		}
-	}
-}
-
-void init_SDL() {
+void init_SDL()
+{
 
 	int ret;
 
@@ -94,14 +61,15 @@ void init_Joys(int number) {
 
 	int i;
 
-	printf("%i joystick(s) initialised\n", number);
+	printd(D_INPUT, D_INFO, "%i joystick(s) initialised\n", number);
 
 	for (i = 0; i < 8; i++) {
 		if (i < number) {
 			conts[i].status = CONT_CONNECTED;
+			conts[i].pack = PACK_NONE;
 		}
 	}
-}
+}								
 
 void reset_keymaps() {
 
@@ -115,8 +83,27 @@ void reset_keymaps() {
 	
 }
 
-void init_keymap() {
+void init_keymap()
+{
+#ifdef WIN32
+	conts[0].keymap[72] = BUTTON_UP;			   // keypad , no numlock
+	conts[0].keymap[80] = BUTTON_DOWN;
+	conts[0].keymap[75] = BUTTON_LEFT;
+	conts[0].keymap[77] = BUTTON_RIGHT;
 
+	conts[0].keymap[28] = BUTTON_START;	 // return
+
+	conts[0].keymap[44] = BUTTON_A;	   //z
+	conts[0].keymap[45] = BUTTON_B;	   //x
+	conts[0].keymap[46] = BUTTON_Z;	   //c
+
+	conts[0].ystickmap[80] = 0x40;
+	conts[0].ystickmap[88] = 0xc0;
+
+	conts[0].xstickmap[83] = 0xc0;
+	conts[0].xstickmap[85] = 0x40;
+
+#else
 	conts[0].keymap[98] = BUTTON_UP;
 	conts[0].keymap[104] = BUTTON_DOWN;
 	conts[0].keymap[100] = BUTTON_LEFT;
@@ -133,17 +120,19 @@ void init_keymap() {
 
 	conts[0].xstickmap[83] = 0xc0;
 	conts[0].xstickmap[85] = 0x40;
+#endif
 
-	printf("Keyboard keymap initialised\n");
+	printd(D_INPUT, D_DEBUG, "Default keyboard keymap initialised\n");
 
 }
 
-void init_pifram(uint8 *here) {
+void init_pifram(struct module_info *modptr, uint8 *here) {
 
-#ifdef DEBUG_PIF
-	printf("Debugging PIFMEM i see ... good luck :)\n");
-	printf("PIFMEM inited: %x\n", here);
-#endif
+	modules = modptr;
+
+	printd(D_INPUT, D_DEBUG, "Debugging PIFMEM i see ... good luck :)\n");
+	printd(D_INPUT, D_DEBUG, "PIFMEM initiated: %x\n", here);
+
 	PIFMEM = here;
 	PIFRAM = here + 0x07c0;
 
@@ -157,9 +146,9 @@ void translate_key(SDL_KeyboardEvent *key) {
 	uint8 mkey;
 	int co;
 
-	printf("%i\n", key->keysym.scancode);
-
-//	printf("%i:%i %i\n", key->keysym.scancode, co, conts[co].keymap[key->keysym.scancode]);
+	printd(D_INPUT, D_DEBUG, "Key: %i\n", key->keysym.scancode);
+	
+	if (key->keysym.scancode == 9) { exit(0); }
 
 	for (co = 0; co < 8; co++) {
 
@@ -179,7 +168,7 @@ void translate_key(SDL_KeyboardEvent *key) {
 			conts[co].stick_y -= conts[co].ystickmap[key->keysym.scancode];
 			break;
 		default:
-			printf("Hmm?\n");
+			printd(D_INPUT, D_DEBUG, "Hmm?\n");
 	}
 	}
 }
@@ -202,57 +191,99 @@ void update_state() {
 void dump_pifram() {
 
         int i;
-        int j;
 
-        printf("PIFMEM debug:\n");
+        printd(D_INPUT, D_DEBUG, "PIFMEM debug:\n");
 
         for (i = 0; i < 8; i++) {
-                printf("Channel %i:\t", i+1);
-                printf("%.2x %.2x %.2x %.2x - %.2x %.2x %.2x %.2x\n", PIFRAM[(i*8)+3], PIFRAM[(i*8)+2], PIFRAM[(i*8)+1], PIFRAM[i*8], PIFRAM[(i*8)+7], PIFRAM[(i*8)+6], PIFRAM[(i*8)+5], PIFRAM[(i*8)+4]);
+                printd(D_INPUT, D_DEBUG, "Channel %i:\t", i+1);
+                printd(D_INPUT, D_DEBUG, "%.2x %.2x %.2x %.2x - %.2x %.2x %.2x %.2x\n", PIFRAM[(i*8)+3], PIFRAM[(i*8)+2], PIFRAM[(i*8)+1], PIFRAM[i*8], PIFRAM[(i*8)+7], PIFRAM[(i*8)+6], PIFRAM[(i*8)+5], PIFRAM[(i*8)+4]);
         }
 }
 
-void perform_command(int co, char command) {
+void perform_command(int co, char command, int readlen, int writelen) {
+
+	int coerror = 0;
+
+	if (conts[co].status != CONT_CONNECTED) {
+//		printd(D_INPUT, D_DEBUG, "Controller %d supposedly not connected\n",co);
+		coerror = 8;
+	} else {
 
 	switch(command) {
+		case 0x00:
+			if (readlen != 1 || writelen != 3) {
+				coerror = 4;
+			}
+
+			PIFRAM[(co*8)+7] = 0x05; // Say no to drugs children
+			PIFRAM[(co*8)+6] = 0x00;
+			PIFRAM[(co*8)+5] = conts[co].pack;
+// One of these ^ or v is right
+//			PIFRAM[(co*8)+7] = 0x00;
+//			PIFRAM[(co*8)+6] = 0x05;
+//			PIFRAM[(co*8)+5] = conts[co].pack;
+			break;
 		case 0x01:
+			if (readlen != 1 || writelen != 4) {
+				coerror = 4;
+			} // But apparently we perform the operation anyway
+
 			PIFRAM[(co*8)+7] = conts[co].bset.braw[0];
 			PIFRAM[(co*8)+6] = conts[co].bset.braw[1];
 			PIFRAM[(co*8)+5] = conts[co].stick_x;
 			PIFRAM[(co*8)+4] = conts[co].stick_y;
 			break;
-		default:
-			printf("Don't know how to perform %#x on controller!\n", command);
+		case 0x03:
+			if (conts[co].pack == PACK_NONE) {
+				coerror = 8;
+				printd(D_INPUT, D_WARN, "Rom requested mempack when one isn't plugged in\n");
+			} else {
+				printd(D_INPUT, D_NOTICE, "Mempacks not supported!\n");
+			}
 			break;
+		default:
+			printd(D_INPUT, D_WARN, "Don't know how to perform %#x on controller!\n", command);
+			break;
+	}
+
+	}
+
+	if (coerror) {
+		PIFRAM[(co*8)+1] |= coerror << 4;
 	}
 }
 
 void pifram_interrupt() {
 
-	int i;
-
-#ifdef DEBUG_PIF
 	dump_pifram();
-#endif
-
-/*	if (!conts[0].bset.buttons) {
-		conts[0].bset.buttons = 1;
-	} else {
-		conts[0].bset.buttons <<= 1;
-	} */
 
 	update_state();
 
-	for (i = 0; ((i < 8) && (PIFRAM[(i*8)+3] != 0xfe)); i++) {
-		if ((((uint32*)PIFRAM)[i*2] & 0xffffff00) != 0xff010400) {
-			printf("I don't handle this kind of controller access\n");
-		} else {
-			perform_command(i, PIFRAM[i*8]);
-		}
+	if (*(PIFRAM+0x3c) == 0x8) {
+		printd(D_INPUT, D_INFO, "Rom is using input ...\n");
+	} else {
+		update_pifram();
 	}
 
-#ifdef DEBUG_PIF
+	*(PIFRAM+0x3c) = 0x00;
+
 	dump_pifram();
-#endif
-//	run=0;
 }
+
+void update_pifram() {
+
+	int i;
+	uint8 ffb, bread, bwrite, cmd;
+
+	for (i = 0; ((i < 8) && (PIFRAM[(i*8)+3] != 0xfe)); i++) {
+		ffb = PIFRAM[(i*8)+3];
+		bread = PIFRAM[(i*8)+2];
+		bwrite = PIFRAM[(i*8)+1];
+		cmd = PIFRAM[(i*8)];
+
+		if (ffb == 0xff) {
+			perform_command(i, PIFRAM[i*8], bread, bwrite);
+		}
+	}
+}
+

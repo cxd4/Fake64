@@ -1,21 +1,22 @@
-struct cpu_reg {
-	long long gpr[32];  //r4300i registers
-	long long gpr0[32]; //COP0 registers
-	
-  long long gpr1[32]; //COP1 registers
+struct cpu_reg
+{
+	int64 gpr[32];  //r4300i registers
+	int64 gpr0[32]; //COP0 registers
+
+	int32 gpr1[32]; //COP1 registers
 
 	unsigned int cr0[32];	     //COP0 Control registers (do they exist?)
 	unsigned int cr1[32];	     //COP1 Control registers (only 0 and 31 exist)
 				//But i'd rather trade memory in for speed than
 				//vice versa
-	long long pc;		//Program counter
-	long long HI;		//High 64 bits of multiply/divide result
-	long long LO;		//Low 64 bits of multiply/divide result
+	int64 pc;		//Program counter
+	int64 HI;		//High 64 bits of multiply/divide result
+	int64 LO;		//Low 64 bits of multiply/divide result
 	char LLbit;		//Load/Link bit, as a char :O)
 	int64 CPUdelayPC;
 	uint32 CPUdelay;
 
-  long long VInextInt; // when we fire a new VI interrupt
+	int64 VInextInt; // when we fire a new VI interrupt
 };
 
 #define MAXTLB 32
@@ -33,12 +34,19 @@ struct tlb_struct
 
 extern struct tlb_struct        TLB[MAXTLB];
 
+typedef enum {
+	R_NUM, R_GPR, R_GPR0, R_GPR1, R_OFF, R_CAD
+} reg_type;
+
+// Register aliases
+
 #define COP0_COUNT	reg.gpr0[9]
 #define COP0_STATUS	reg.gpr0[12]
 #define COP0_CAUSE	reg.gpr0[13]
 #define COP0_EPC	reg.gpr0[14]
 #define COP0_ERROR_EPC	reg.gpr0[30]
 
+#define SP_TASK		(*((uint32 *)(SPDIMEM+0xfc0)))
 // COP0_STATUS bitmasks etc
 #define COP0_STATUS_IE		( COP0_STATUS & 1 )
 #define COP0_STATUS_EXL		( COP0_STATUS & 2 )
@@ -80,3 +88,11 @@ extern struct tlb_struct        TLB[MAXTLB];
 #define OTHER_SI_DMA_RD         0x08
 #define OTHER_SI_DMA_WR         0x10
 #define OTHER_AI                0x20
+#define OTHER_SP_DMA_RD		0x40
+#define OTHER_SP_DMA_WR		0x80
+
+#define SP_STATUS_HALT          0x001           /* Bit  0: halt */
+
+#define SP_STATUS_SIG2          0x200           /* Bit  9: signal 2 set */
+#define SP_STATUS_TASKDONE      SP_STATUS_SIG2
+

@@ -1,6 +1,11 @@
-#include <config.h>
+#ifdef WIN32
+	#include <SDL.h>
+#else
+	#include <config.h>
+	#include <SDL/SDL.h>
+#endif
+
 #include <general.h>
-#include <SDL/SDL.h>
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -9,6 +14,8 @@
 
 #ifndef GPROF
 
+
+uint32 frames=0;
 
 struct screen_attributes
 {
@@ -124,8 +131,9 @@ void vi_intr_reg_write(uint32 data) {
 }
 
 
-int vi_init(void) {
-int x,y;
+int vi_init(void)
+{
+//int x,y;
 
 
 if((SDL_Init(SDL_INIT_VIDEO)==-1)) {
@@ -149,12 +157,14 @@ sa.Active=0;
 //printf("%x %x %x %x\n",screen->format->Rmask,screen->format->Gmask,screen->format->Bmask,screen->format->Amask);
 SDL_WM_SetCaption("Fake64", NULL);
 printf("Video (SDL) initialized\n");
+
+	return 0;
 }
 
 void vi_display(uint8* regs,uint16* addr)
 {
   Uint16 *raw_pixels;
-  int x,y,count,pixel,i,j;
+  int i;
 
 
 	if ((uint32)addr>=0x80000000)
@@ -186,19 +196,47 @@ if (!raw_pixels)
 
 if (sa.ubpp==15)
 {
-  if (sa.XRes==320)
-  {
-    for (i=0;i<320*240;i+=4)
-    {
-      __asm__ ("movq %1,%%mm0\n\t"
-              "movq %%mm0,%%mm1\n\t"
-                "psrld $16,%%mm1\n\t"
-                 "pslld $16,%%mm0\n\t"
-                 "por %%mm0,%%mm1\n\t"
-                 "psrld $1,%%mm1\n\t"
-                 "movq %%mm1,%0 \n\t"
-                 :"=m" (raw_pixels[i]):"m"(addr[i]));
-    }
+	if (sa.XRes==320)
+	{
+		for (i=0;i<320*240;i+=4)
+		{
+
+#ifdef WIN32
+		/*__asm
+		{
+			movq	mm0,raw_pixels[i]
+			movq	mm1,mm0
+			psrld	mm1,16
+			pslld	mm0,16
+			por		mm1,mm0
+			psrld	mm1,1		// shift out alpha
+			movq	addr[i],mm1
+	
+		};
+		*/
+			raw_pixels[i]=addr[i+1]>>1;
+			raw_pixels[i+1]=addr[i]>>1;
+			raw_pixels[i+2]=addr[i+3]>>1;
+			raw_pixels[i+3]=addr[i+2]>>1;
+
+
+
+#else
+
+		__asm__ ("movq %1,%%mm0\n\t"
+               "movq %%mm0,%%mm1\n\t"
+               "psrld $16,%%mm1\n\t"
+               "pslld $16,%%mm0\n\t"
+               "por %%mm0,%%mm1\n\t"
+               "psrld $1,%%mm1\n\t"
+               "movq %%mm1,%0 \n\t"
+               :"=m" (raw_pixels[i]):"m"(addr[i]));
+#endif    
+	
+	
+	
+	
+	}
   }
   else if(sa.XRes==640)
   {
@@ -212,7 +250,8 @@ if (sa.ubpp==15)
 					raw_pixels[j+1] = addr[j]>>1;
       }
     }*/
-    for (i=0;i<640*480;i+=4)
+	  /*
+	  for (i=0;i<640*480;i+=4)
     {
       __asm__ ("movq %1,%%mm0\n\t"
               "movq %%mm0,%%mm1\n\t"
@@ -223,33 +262,37 @@ if (sa.ubpp==15)
                  "movq %%mm1,%0 \n\t"
                  :"=m" (raw_pixels[i]):"m"(addr[i]));
     }
-
+	*/
 
 
  }
+
+ frames++;
 }
 else if(sa.ubpp==24)
 {
-  if (sa.XRes==320)
-  {
+	if (sa.XRes==320)
+	{
 #ifdef DEBUG_VI
-    printf("Screen copy\n");
+		printf("Screen copy\n");
 #endif
-    memcpy(screen,raw_pixels,320*240);
-  }
-  else if(sa.XRes==640)
-  {
+		memcpy(screen,raw_pixels,320*240);
+	}
+else if(sa.XRes==640)
+{
 #ifdef DEBUG_VI
-    printf("Screen copy\n");
+printf("Screen copy\n");
 #endif
-    memcpy(screen,raw_pixels,640*480*2);
-  }
+memcpy(screen,raw_pixels,640*480*2);
+}
 }
 
 
-
-__asm__("emms\n\t");
-
+#ifdef WIN32
+	__asm emms;
+#else
+	__asm__("emms\n\t");
+#endif
 
 
 
@@ -259,13 +302,25 @@ __asm__("emms\n\t");
 }
 
 
-int vi_deinit(void) {
- printf("Video deinitialized\n"); /* nothing else needed yet, since init doesnt really do anything ;p */
-SDL_Quit();
+int vi_deinit(void)
+{
+	printf("Video deinitialized\n"); /* nothing else needed yet, since init doesnt really do anything ;p */
+	SDL_Quit();
+	return 0;
 }
 
 
-/*
+// dummy config function
+void config_module(char* conf)
+{
+}
+
+void rcp_command(uint8* data, int len)
+{
+	printf("Not implemented in this module\n");
+}
+
+/*	old pixel copying code
 
 #ifdef X2
 
@@ -273,7 +328,7 @@ for (x = 0; x < 480; x+=2,raw_pixels+=640,addr+=0)
 {
 	for (y = 0; y < 640; y+=4,raw_pixels+=4,addr+=2) {
 					pixel=*(addr+1)>>1;
-          *raw_pixels=pixel ;
+					*raw_pixels=pixel ;
 					*(raw_pixels+1)=pixel;
 					*(raw_pixels+640)=pixel;
 					*(raw_pixels+641)=pixel;

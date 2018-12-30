@@ -44,7 +44,7 @@ int ai_init()
 {
     int value;
 
-    int n_fragments = 16; /* number of fragments */
+    int n_fragments = 300; /* number of fragments */
     int fragment_size = 8; /* a buffersize of 2^8 = 256 bytes */
 
 		printf("AI: init rs' module\n");
@@ -81,42 +81,26 @@ int ai_init()
     return 1;
 }
 
-/*
-int ai_init() {
-printf("rs' AI module (PCM Mode)\n");
-fd_dsp = open("/dev/dsp", O_RDWR| O_SYNC);
-  if (fd_dsp ==-1) {
-   perror("open of /dev/dsp failed");
-   exit(1);
-  }
+// get how much we have buffered up
+int32 ai_getlength()
+{
+	int32 length;
+	audio_buf_info info;
+	status=ioctl(fd_dsp, SNDCTL_DSP_GETOSPACE, &info);
+  if (-1==status)
+		perror("AI: Error trying to get length");
 
+	length=(info.fragstotal-info.fragments)*info.fragsize;
+#ifdef DEBUG
+    printf("AI: Warning: Read from length, %u\n",length);
+#endif
 
-arg = CHANNELS-1;
-  status = ioctl(fd_dsp, SOUND_PCM_WRITE_CHANNELS, &arg);
-  if (status == -1)
-    perror("SOUND_PCM_WRITE_CHANNELS ioctl failed");
-  if (arg != CHANNELS)
-    perror("unable to set number of channels");
-
-  arg = 22000;
-  status = ioctl(fd_dsp, SOUND_PCM_WRITE_RATE, &arg);
-  if (status == -1) {
-    perror("error from SOUND_PCM_WRITE_RATE ioctl");
-    exit(1);
-  }
-
- arg = SIZE;
-      status = ioctl(fd_dsp, SOUND_PCM_WRITE_BITS, &arg);
-  if (status == -1)
-    perror("SOUND_PCM_WRITE_BITS ioctl failed");
-  if (arg != SIZE)
-    perror("unable to set sample size");
+	return length;
 }
-*/
 
 int ai_dma_request(uint8 *airegs,uint32 addr) {
 int newbitrate,newdacrate,value;
-uint32 length=*((uint32 *)(airegs+0x04));
+uint32 length=*((uint32 *)(airegs+0x04))&~0x7;	// ignore lower 3 bits (HACK should be 17:3 or 15:3)
   	
   newbitrate=1+ (*((uint32*)(airegs+0x14)) &0x0F);
 	newdacrate=(*((uint32*)(airegs+0x10))&0x3FFF); // lower 14 bits
@@ -143,7 +127,8 @@ uint32 length=*((uint32 *)(airegs+0x04));
   }
 
 #ifdef DEBUG
-	printf("ai_dma_request: Bitrate %d\tDacrate %d\t Frequency %d\n",bitrate,dacrate,VI_PAL_CLOCK/dacrate);
+	if (dacrate)
+		printf("AI dma_request: Bitrate %d\tDacrate %d\t Frequency %d from 0x%x\n",bitrate,dacrate,VI_PAL_CLOCK/dacrate,addr);
     printf("Length= %u\n",length);
 #endif
   //write
@@ -153,6 +138,8 @@ uint32 length=*((uint32 *)(airegs+0x04));
     perror("AI: Error writing to /dev/dsp");
     return 0;
   }
+//  if (!length)
+//		GenerateInterrupt(0x4); // AI_interrupt
 #ifdef DEBUG
   printf("AI wrote %d to /dev/dsp\n",status);
 #endif
@@ -161,7 +148,7 @@ uint32 length=*((uint32 *)(airegs+0x04));
 
 
 int ai_deinit(void) {
- printf("audio deinitialized\n");
+ printf("AI: audio deinitialized\n");
  close(fd_dsp);
  return 1;
 }

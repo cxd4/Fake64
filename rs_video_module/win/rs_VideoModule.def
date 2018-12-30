@@ -1,0 +1,16 @@
+LIBRARY rs_VideoModule
+EXPORTS 
+   
+		vi_init
+		vi_deinit
+	   
+		vi_display
+		vi_intr_reg_write
+		vi_origin_reg_write
+		vi_status_reg_write
+		vi_width_reg_write
+
+		dump_rcp_command	
+		
+		module_id
+		config_module

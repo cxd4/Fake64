@@ -1,10 +1,67 @@
 SetDefault default
+SetRom tr64.v64 tr64
+SetRom ULTRA1.V64 ultra
+SetRom TOPGUN.V64 topgun
+SetRom LINE.V64 liner
+SetRom plasma.v64 plasma
+SetRom msk-pong.v64 pong
+
+Section pong {
+	Option cpu cf 10
+#	Option cpu patch 0x8020025c 0x00000000
+#	Option cpu patch 0x80200260 0xec000002
+#	Option cpu patch 0x800001c0 0x00000000
+#	Option cpu patch 0x800001c8 0x00000000
+}
+
+Section plasma {
+	#Option cpu cf 4
+	#Option cpu patch 0x800001c0 0x00000000
+	#Option cpu patch 0x800001c8 0x00000000
+	#Option cpu patch 0x80200158 0xec000001
+}
+
+Section liner {
+	#Option cpu patch 0x8020642c 0x00000000
+	#Option cpu patch 0x80206430 0x00000000
+	Option cpu patch 0x800001c0 0x00000000
+	Option cpu patch 0x800001c8 0x00000000
+}
+
+Section tr64 {
+	Option video 2d 0
+	Option cpu patch 0x801652a8 0xec000001
+	Option cpu patch 0x800001c0 0x00000000
+	Option cpu patch 0x800001c8 0x00000000
+	#Option cpu kill 0x8
+}
+
+Section ultra {
+	Option video 2d 0
+	Option cpu patch 0x801652a8 0xec000001
+	Option cpu patch 0x800001c0 0x00000000
+	Option cpu patch 0x800001c8 0x00000000
+}
+
+Section topgun {
+	Option video 2d 0
+	Option cpu cf 1
+	Option cpu patch 0x80000560 0xec000001
+	Option cpu patch 0x800001c0 0x00000000
+	Option cpu patch 0x800001c8 0x00000000
+}
 
 Section default {
 	Include input_defaults
+	LoadModule input /usr/local/fake64/plugins/input/libinput.so
+	LoadModule audio /usr/local/fake64/plugins/audio/libaudiors.so
+	LoadModule video /usr/local/fake64/plugins/video/libvideo.so
+	LoadModule cpu /usr/local/fake64/plugins/cpu/libcpu.so
 }
 
 Section input_defaults {
+	Option input controllers 1
+
 	Option input mapkey 0 up 98
 	Option input mapkey 0 down 104
 	Option input mapkey 0 left 100
@@ -27,6 +84,7 @@ Section input_defaults {
 }
 
 Section hcls_input {
+	Option input controllers 1
 	Option input mapkey 0 a 38
 	Option input mapkey 0 b 53
 	Option input mapkey 0 start 39
@@ -50,6 +108,7 @@ Section hcls_input {
 
 Section four_players_dpads {
 	Option input resetmaps
+	Option input controllers 4
 	Option input mapsticky 0 64 80
 	Option input mapsticky 0 -64 88
 	Option input mapstickx 0 64 85
@@ -81,6 +140,7 @@ Section four_players_dpads {
 }
 
 Section liner_art {
+	Option input controllers 4
         Option input mapkey 0 up 98
         Option input mapkey 0 down 104
         Option input mapkey 0 left 100

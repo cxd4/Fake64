@@ -1,0 +1,9 @@
+			 LIBRARY CPU_DYNA
+EXPORTS 
+   
+
+		
+		module_id
+		config_module
+		main_cpu_loop
+		translate_addr

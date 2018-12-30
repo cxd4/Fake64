@@ -45,6 +45,7 @@
 #define          CC_P          0xA
 #define          CC_PE         CC_P
 #define          CC_NP         0xB
+
 #define          CC_PO         CC_NP
 #define          CC_L          0xC
 #define          CC_NGE        CC_L
@@ -89,6 +90,20 @@ void ADDI(uint8 reg, uint32 data);
 void SUB(uint8 reg1,uint8 reg2);
 void SUBI(uint8 reg, uint8 data);
 void BT32_RegWithImm(void *addr,uint8 data);
-void MOV_Imm8ToMem(void *mem, uint8 data);
+void MOV_ImmToMem(void *mem, uint8 data);
 void AND_Imm32ToMem(void *addr,uint32 data);
+void ADD_ImmToMem(void *addr,uint32 data);
+void ADD_MemToEAX(void *addr);
+void CMP_RegWithReg32(uint8 reg1,uint8 reg2);
 
+
+
+// os specific
+
+#ifdef WIN32
+	#define POPALLREGS() __asm popad;
+	#define PUSHALLREGS() __asm pushad;
+#else
+	#define POPALLREGS() __asm__ ("popa");
+	#define PUSHALLREGS() __asm__ ("pusha");
+#endif

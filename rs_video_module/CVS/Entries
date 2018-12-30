@@ -1,0 +1,23 @@
+/2d.c/1.4/Wed Jan 16 18:00:00 2002//
+/Makefile.am/1.12/Sun Feb 17 20:32:49 2002//
+/basic_core.c/1.1/Sun Feb 17 20:32:49 2002//
+/config.c/1.5/Sat Jan 26 10:45:24 2002//
+/config_options.c/1.9/Sun Feb 17 20:32:49 2002//
+/config_options.h/1.6/Sat Jan 26 10:45:24 2002//
+/dlist_exec_1.c/1.16/Sun Feb 17 20:32:49 2002//
+/dlist_exec_1.h/1.3/Sat Jan 26 10:45:24 2002//
+/dlist_exec_c.c/1.10/Sat Jan 26 10:45:24 2002//
+/dump.c/1.25/Sun Feb 17 20:32:49 2002//
+/fps.c/1.2/Wed Jan 30 19:45:46 2002//
+/fps.h/1.1/Wed Jan 16 18:00:00 2002//
+/libvideo.c/1.24/Sun Feb 17 20:32:49 2002//
+/rcp_core.h/1.1/Sun Feb 17 20:32:49 2002//
+/rcp_state.c/1.10/Sun Feb 17 20:32:49 2002//
+/rcp_state.h/1.12/Sun Feb 17 20:32:49 2002//
+/rdpcommand.h/1.9/Sat Jan 26 10:45:24 2002//
+/render.c/1.13/Wed Jan 30 19:45:46 2002//
+/render.h/1.1/Thu Jan  3 20:56:15 2002//
+/sprite_cache.c/1.4/Thu Jan  3 23:50:02 2002//
+/ucode00.c/1.1/Sun Feb 17 20:32:49 2002//
+/video.h/1.1/Thu Jan  3 18:17:59 2002//
+D/win////

@@ -124,11 +124,11 @@ AC_DEFINE_UNQUOTED(VIDEO_DIR, "${temp_pref}/video", [Libvideo dir])
 AC_DEFINE_UNQUOTED(INPUT_DIR, "${temp_pref}/input", [Libinput dir])
 
 AC_ARG_ENABLE(notinstalled, [  --enable-notinstalled	  Change module search path])
-AC_ARG_ENABLE(exitonunim, [  --enable-exitonunim	  Exit on unimplemented interrupts])
+AC_ARG_ENABLE(exitonunim, [  --enable-exitonunim	  Exit on unimplemented registers])
 AC_ARG_ENABLE(debugpif, [  --enable-debugpif	  Enable pifram debugging])
 AC_ARG_ENABLE(debugvi, [  --enable-debugvi	  Enable VI debugging])
-AC_ARG_ENABLE(gprof, [  --enable-gprof		  Enable gprofing])
-AC_ARG_ENABLE(debug, [  --enable-debug            Enable debugging])
+AC_ARG_ENABLE(gprof, [  --enable-gprof	  Enable gprofing])
+AC_ARG_ENABLE(debug, [  --enable-debug	  Enable debugging])
 
 test "$enable_notinstalled" = "yes" && AC_DEFINE(NOT_INSTALLED, 1, [Not installed])
 test "$enable_exitonunim" = "yes" && AC_DEFINE(EXIT_ON_UNIM, 1, [Exit on unimplemented interrupts])
@@ -138,7 +138,7 @@ test "$enable_gprof" = "yes" && gprof='-p -pg -static' && AC_DEFINE(GPROF, 1, [G
 test "$enable_gprof" != "yes" && fomit='-fomit-frame-pointer'
 test "$enable_debug" = "yes" && AC_DEFINE(DEBUG, 1, [Global Debugging])
 
-test "$enable_gprof" = "yes" && mad_linking="-L../cpucore_pure_c/.libs/ -L../rs_audio_module/.libs/ -L../bfs_input_module/.libs/ -L../sliders_video_module/.libs/ -lcpu -lvideo -laudiors -linput"
+test "$enable_gprof" = "yes" && mad_linking="-L../cpucore_pure_c/.libs/ -L../rs_audio_module/.libs/ -L../bfs_input_module/.libs/ -L../sliders_video_module/.libs/ -L../rs_video_module -lcpu -lvideo -laudiors -linput"
 
 AC_SUBST(gprof)
 AC_SUBST(fomit)
@@ -146,4 +146,4 @@ AC_SUBST(mad_linking)
 
 dnl -pg and -fomit-frame-pointer aren't compatible
 
-AC_OUTPUT(rs_audio_module/Makefile cpucore_pure_c/Makefile romloader/Makefile bfs_input_module/Makefile sliders_video_module/Makefile bfs_audio_module/Makefile Makefile cpucore_dynarec/Makefile)
+AC_OUTPUT(rs_audio_module/Makefile cpucore_pure_c/Makefile romloader/Makefile bfs_input_module/Makefile sliders_video_module/Makefile rs_video_module/Makefile bfs_audio_module/Makefile Makefile cpucore_dynarec/Makefile testsuite/Makefile)

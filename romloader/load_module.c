@@ -1,14 +1,15 @@
 #include <stdio.h>
-#include <dlfcn.h>
 #include <general.h>
 #include <romheader.h>
-#include <load_module.h>
+#include <module.h>
 #include <version.h>
+#include <dlfcn.h>
 
-void * load_module(char *name)
-{ static void *module;
 
-  module=dlopen(name,RTLD_LAZY | RTLD_GLOBAL); // replace with rtld_now to speed things up?
+void *load_module(char *name)
+{
+	static void *module;
+  module=dlopen(name,RTLD_GLOBAL | RTLD_NOW); // replace with rtld_now to speed things up? (yes possibly)
   if(!module)
    { fprintf(stderr, "%s: %s\n", PROG_NAME, dlerror());
      return NULL;
@@ -16,7 +17,8 @@ void * load_module(char *name)
   return module;
 }
 
-void * load_symbol(void *module,char *name,char *modulename)
+
+void *load_symbol(void *module,char *name,char *modulename)
 { void *symbol;
   const char *error;
   dlerror();
@@ -28,60 +30,84 @@ void * load_symbol(void *module,char *name,char *modulename)
   return symbol;
 }
 
-input_module *load_input_module(char *name) {
 
-	void *module, *module_id;
+
+input_module *load_input_module(char *name)
+{
 	input_module *input;
-
-	module = load_module(name);
-	if (!module) { return 0; }
-
-	module_id = load_symbol(module, "module_id", name);
-	if (!module_id) { return 0; }
+	
+	if(!name[0]) return 0;	
 
 	input = (input_module *)malloc(sizeof(input_module));
-	input->module = module;
-	input->module_id = module_id;
-	input->config_module = dlsym(module, "config_module");
+
+	input->module = load_module(name);
+	if (!input->module) { free(input); return 0; }
+
+	input->module_id_f = load_symbol(input->module, "module_id", name);
+	if (!input->module_id_f) { free(input); return 0; }
+
+        input->init_pifram_f = load_symbol(input->module, "init_pifram", name);
+        if (!input->init_pifram_f) { free(input); return 0; }
+
+        input->pifram_interrupt_f = load_symbol(input->module, "pifram_interrupt", name);
+        if (!input->pifram_interrupt_f) { free(input); return 0; }
+
+	input->config_module_f = dlsym(input->module, "config_module");
 
 	return input;
 }
 
-video_module *load_video_module(char *name) {
-
-	void *module, *module_id, *vi_init,*vi_deinit;
+video_module *load_video_module(char *name)
+{
 	video_module *video;
 
-  void *vi_display; // temp by rs
-	module = load_module(name);
-	if (!module) { return 0; }
+        if(!name[0]) return 0;
 
-	module_id = load_symbol(module, "module_id", name);
-	if (!module_id) { return 0; }
+        video = (video_module *)malloc(sizeof(video_module));
 
-        vi_init = load_symbol(module, "vi_init", name);
-        if (!vi_init) return 0;
+	video->module = load_module(name);
+	if (!video->module) { free(video); return 0; }
 
-        vi_deinit = load_symbol(module, "vi_deinit", name);
-        if (!vi_deinit) return 0;
+        video->module_id_f = load_symbol(video->module, "module_id", name);
+        if (!video->module_id_f) { free(video); return 0; }
 
-        vi_display = load_symbol(module, "vi_display", name);
-        if (!vi_display) return 0;
+        video->vi_init_f = load_symbol(video->module, "vi_init", name);
+        if (!video->vi_init_f) { free(video); return 0; }
 
-	video = (video_module *)malloc(sizeof(video_module));
-	video->module = module;
-	video->module_id = module_id;
-	video->vi_init = vi_init;
-	video->vi_deinit = vi_deinit;
-	video->config_module = dlsym(module, "config_module");
+        video->vi_deinit_f = load_symbol(video->module, "vi_deinit", name);
+        if (!video->vi_deinit_f) { free(video); return 0; }
+
+        video->vi_display_f = load_symbol(video->module, "vi_display", name);
+        if (!video->vi_display_f) { free(video); return 0; }
+
+        video->vi_intr_reg_write_f = load_symbol(video->module, "vi_intr_reg_write", name);
+        if (!video->vi_intr_reg_write_f) { free(video); return 0; }
+
+        video->vi_width_reg_write_f = load_symbol(video->module, "vi_width_reg_write", name);
+        if (!video->vi_width_reg_write_f) { free(video); return 0; }
+
+        video->vi_origin_reg_write_f = load_symbol(video->module, "vi_origin_reg_write", name);
+        if (!video->vi_origin_reg_write_f) { free(video); return 0; }
+
+        video->vi_status_reg_write_f = load_symbol(video->module, "vi_status_reg_write", name);
+        if (!video->vi_status_reg_write_f) { free(video); return 0; }
+
+        video->rcp_command_f = load_symbol(video->module, "rcp_command", name);
+        if (!video->rcp_command_f) { free(video); return 0; }
+
+	video->config_module_f = dlsym(video->module, "config_module");
 
 	return video;
 }
+
+
 
 audio_module *load_audio_module(char *name) {
 
 	void *module, *module_id,*ai_init,*ai_dma_request,*ai_deinit;
 	audio_module *audio;
+
+        if(!name[0]) return 0;
 
 	module = load_module(name);
 	if (!module) return 0;
@@ -100,30 +126,36 @@ audio_module *load_audio_module(char *name) {
 
 	audio = (audio_module *)malloc(sizeof(audio_module));
 	audio->module = module;
-	audio->module_id = module_id;
-   	audio->ai_init = ai_init;
-   	audio->ai_dma_request = ai_dma_request;
-   	audio->ai_deinit = ai_deinit;
-	audio->config_module = dlsym(module, "config_module");
+	audio->module_id_f = module_id;
+   	audio->ai_init_f = ai_init;
+   	audio->ai_dma_request_f = ai_dma_request;
+   	audio->ai_deinit_f = ai_deinit;
+	audio->config_module_f = dlsym(module, "config_module");
 
 	return audio;
 }
 
 cpu_module *load_cpu_core_module(char *name)
-{ void *module,*module_id,*main_cpu_loop;
+{ void *module,*module_id,*main_cpu_loop,*translate_addr;
   cpu_module *cpumodule;
+
+  if(!name[0]) return 0;
+
   module=load_module(name);
   if(!module) return 0;
   module_id=load_symbol(module,"module_id",name);
   if(!module_id) return 0;
   main_cpu_loop=load_symbol(module,"main_cpu_loop",name);
   if(!main_cpu_loop) return 0;
+  translate_addr=load_symbol(module,"translate_addr",name);
+  if(!translate_addr) return 0;
 
   cpumodule=(cpu_module *)malloc(sizeof(cpu_module));
   cpumodule->module=module;
-  cpumodule->module_id=module_id;
-  cpumodule->main_cpu_loop=main_cpu_loop;
-  cpumodule->config_module=dlsym(module, "config_module");
+  cpumodule->module_id_f=module_id;
+  cpumodule->main_cpu_loop_f=main_cpu_loop;
+  cpumodule->config_module_f=dlsym(module, "config_module");
+  cpumodule->translate_addr_f=translate_addr;
 
   return cpumodule;
 }

@@ -6,7 +6,10 @@
 #include <decode.h>
 #include "x86.h"
 
-#define DEBUG
+#include "module.h"
+#include "linking.h"
+
+#define DEBUGMODE 2
 #define STORE_BLOCKS
 
 char* reg_names[] = {"r0", "at", "v0", "v1", "a0", "a1", "a2", "a3", "t0",
@@ -15,7 +18,7 @@ char* reg_names[] = {"r0", "at", "v0", "v1", "a0", "a1", "a2", "a3", "t0",
         "sp", "s8", "ra"};
 
 char *module_id(void)
-{ return("N64 dynarec x86 cpu core (Version 0.00000001 by HCl)"); }
+{ return("N64 dynarec x86 cpu core (Version 0.00000001 by HCl) (BROKEN)"); }
 
 #ifdef STORE_BLOCKS
 uint32 recompiledblocks[10000][3];
@@ -24,19 +27,39 @@ uint32 recompiledblockcounter=0;
 extern cpu_instruction dyna_instr[64];
 extern cpu_instruction dcpu_instr[64];
 extern int print;
+extern int run;
 struct cpu_reg reg;
 uint32 op;
 uint32 dynop;
 uint32 lerror;
 
-void *codeblockpointer;
+struct module_info* modules;
+
+char *codeblockpointer;
 int codeblocksize;
 int othertask;
 
+
+// stuff for new memory allocating routines
+#define BLOCKSIZE		1024*1024 //
+#define MINSIZELEFT		16384
+char*	blocks[1000];
+uint16	numblocks=0;
+char*	nextcodestart;		// 32 byte aligned leaving at least MINSIZELEFT space in a block
+
 uint32 Recompile_Block(void);
 void sig_stop_run();
+void debugger_step(void);
+void CheckInterrupts();
+void PI_DMA_Transfer_WR();
+void PI_DMA_Transfer_RD();
+void SP_DMA_Transfer_WR();
+void SP_DMA_Transfer_RD();
+void si_dma_transfer_read();
+void si_dma_transfer_write();
+void GenerateTimerInterrupt();
+void GenerateInterrupt(uint32 type);
 
-extern void CheckInterrupts();
 extern uint8 PossibleInterrupt;
 
 
@@ -97,41 +120,55 @@ void printcount(int signal)
  printf("nextvi as 64 0x%llx\n",reg.VInextInt);
 }
 
-void main_cpu_loop(struct rom *rom)
-{	uint32 *lop,rpc,*jt;
+void main_cpu_loop(struct rom *rom,struct module_info* mods)
+{	uint32 *lop,rpc;
 	uint32 addr2;
 	uint32 countstate;
 
+	modules=mods;
+
 	signal(SIGINT, sig_stop_run);
 
-       alloc_memory(rom);
+    alloc_memory(rom);
 	init_regs();
-        init_pifram(PIFMEM);
+    modules->input->init_pifram_f(modules,PIFMEM);
 
-        // copy bootcode to SP_DMEM
-        memcpy((void *)(RAM_OFFSET_MAP[0x400]+0x4000000),rom->header,0x1000);		
+	// allocate first block
+	blocks[0]=malloc(BLOCKSIZE);
+	nextcodestart=(char *)(((uint32)(blocks[0]+32))&~31);
+	numblocks++;
+
+
+	// copy bootcode to SP_DMEM
+	memcpy((void *)(RAM_OFFSET_MAP[0x400]+0x4000000),rom->header,0x1000);		
 	while(1) {
            rpc=reg.pc&0x1fffffff;
            lop=(uint32 *)(rpc+RAM_OFFSET_MAP[(rpc)>>16]);
-	   countstate=(reg.gpr0[11]<=reg.gpr0[9]);
+	   countstate=(uint32)reg.gpr0[9];
 	   if ((*lop>>26)==59) // if it's our special opcode, call the block
-             {
-                __asm__("pusha \n");                       // HACK
-		((int (*)()) ((*lop&0x03FFFFFF)<<5) )();
-         	__asm__("popa \n");				  		
- 	     }
+       {
+		   
+			PUSHALLREGS();
+	//			printf("calling block at 0x%x\n",((*lop&0x03FFFFFF)<<5) );
+				((int (*)()) ((*lop&0x03FFFFFF)<<5) )();
+			POPALLREGS();
+ 	   
+	   }
 	    else
              { *lop=Recompile_Block();
-#ifdef DEBUG       
-                debugger_step();
+#if DEBUGMODE==2
+	     debugger_step();
 #endif
 	     }
+#if DEBUGMODE==1      
+                debugger_step();
+#endif  
 
 	    while(othertask)
 	     {
 	        if(othertask&OTHER_PIF)
         	 {
-	           pifram_interrupt();
+	           modules->input->pifram_interrupt_f();
         	   othertask&=~OTHER_PIF;
 	         }
         	else if (othertask&OTHER_DMA_RD)
@@ -143,6 +180,16 @@ void main_cpu_loop(struct rom *rom)
         	 {
 	           PI_DMA_Transfer_WR();
         	   othertask&=~OTHER_DMA_WR;
+	         }
+	        else if (othertask&OTHER_SP_DMA_RD)
+        	 {
+	           SP_DMA_Transfer_RD();
+        	   othertask&=~OTHER_SP_DMA_RD;
+	         }
+        	else if (othertask&OTHER_SP_DMA_WR)
+	         {
+        	   SP_DMA_Transfer_WR();
+	           othertask&=~OTHER_SP_DMA_WR;
 	         }
         	else if (othertask&OTHER_SI_DMA_RD)
 	         {
@@ -157,17 +204,15 @@ void main_cpu_loop(struct rom *rom)
 	        else if (othertask&OTHER_AI)
         	 { 
 	           addr2=*((uint32 *)(AIREGS))&0x1fffffff;
-	           ai_dma_request(AIREGS,addr2+RAM_OFFSET_MAP[addr2>>16]);
+	           modules->audio->ai_dma_request_f(AIREGS,addr2+RAM_OFFSET_MAP[addr2>>16]);
         	                othertask&=~OTHER_AI;
 	         }     
 	     }
 
-
-//	    if(reg.gpr0[9]-reg.VInextInt>0 )
-	    if ((reg.gpr0[11]>=reg.gpr0[9])&&countstate)
-               GenerateTimerInterrupt();
-	    
-	    if(reg.VInextInt<reg.gpr0[9] && ((uint32)reg.gpr0[9]+625000>reg.gpr0[9] || reg.VInextInt>625000))
+/*	    if (((uint32)reg.gpr0[9]>=(uint32)reg.gpr0[11])&&countstate<=reg.gpr0[11])
+             {  printf("Timer interrupt: count: 0x%x compare: 0x%x\n",(uint32)reg.gpr0[9],(uint32)reg.gpr0[11]);
+		GenerateTimerInterrupt();}*/
+	    if( ((uint32)reg.gpr0[9]>=(uint32)reg.VInextInt)&&countstate<=reg.VInextInt)
 	     {
           GenerateInterrupt(MI_INTR_VI);
 	        reg.VInextInt=reg.gpr0[9]+625000;
@@ -181,24 +226,23 @@ uint32 currentpc;
 uint32 count;
 
 uint32 Recompile_Block(void)
-{ void *Newcodeblock;
+{ char *Newcodeblock;
   uint32 rpc;
-  void *crap;
-  int i=0;
 
-  crap=0; 
-  Newcodeblock =(void *) calloc(1,32768); // default to this
-  while((((uint32)Newcodeblock)&0x1f)) // things should be aligned... just checking
-   { if(crap) free(crap);
-     free(Newcodeblock);    // might go into an endless loop too
-     crap=(void *)calloc(1,i++);
-     Newcodeblock =(void *) calloc(1,32768); // default to this
-   }
+	if (nextcodestart-blocks[numblocks-1]>BLOCKSIZE-MINSIZELEFT)	// if not enough space
+	{
+		printf("New Block\n");
+		// new block
+		blocks[numblocks]=malloc(BLOCKSIZE);
+		nextcodestart=(char *)(((uint32)(blocks[numblocks]+32))&~31);
+		numblocks++;
+	}
 
-  codeblockpointer=Newcodeblock;
+  codeblockpointer=nextcodestart;
+  Newcodeblock=codeblockpointer;
   count=0;
 
-  printf("Recompiling block of code... 0x%x @ 0x%x\n",(uint32)reg.pc,Newcodeblock);
+  printf("Recompiling block of code... 0x%x @ 0x%x\n",(uint32)reg.pc,(uint32)Newcodeblock);
 
   // Begin block with:
 
@@ -216,11 +260,8 @@ uint32 Recompile_Block(void)
    }
   // End block with:
   // increase of countreg
-
-     MOV_MemToReg(EAX,&COP0_COUNT); // fix with register caching, 32 bits is ok
-     ADDI(EAX,count);
-     MOV_RegToMem(EAX,&COP0_COUNT);
-
+/*
+  ADD_ImmToMem(&COP0_COUNT,count);
   if(jumped==1)
     {
      // modification of reg.pc
@@ -230,45 +271,54 @@ uint32 Recompile_Block(void)
     }
      // ret or a jump to the next block (ret for now)    
      RET();
-//			__asm__("int $3\n");   // debugger trap
-  realloc(Newcodeblock,codeblockpointer-Newcodeblock);
+*/
+
+
 #ifdef STORE_BLOCKS
   recompiledblocks[recompiledblockcounter][0]=(uint32)reg.pc;
   recompiledblocks[recompiledblockcounter][1]=(uint32)Newcodeblock;
   recompiledblocks[recompiledblockcounter++][2]=(uint32)codeblockpointer-(uint32)Newcodeblock;
 #endif
+
+  nextcodestart=(char *)(((uint32)(codeblockpointer+32))&~31); // setup where to start next
+
+  
   return ((59<<26)|(((uint32)Newcodeblock)>>5));
 }
 
-int do_a_dump()
+void do_a_dump()
 {
 	int i;
-	fprintf(stderr, "GPRs:\n");
+	fprintf(stdout, "GPRs:\n");
 	for(i = 0; i < 16; i++) {
-		fprintf(stderr, "$%s: 0x%.16llx   ", reg_names[i], reg.gpr[i]);
-		fprintf(stderr, "$%s: 0x%.16llx   ",reg_names[i+16],reg.gpr[i+16]);
-			fprintf(stderr, "\n");
+		fprintf(stdout, "$%s: 0x%.16llx   ", reg_names[i], reg.gpr[i]);
+		fprintf(stdout, "$%s: 0x%.16llx   ",reg_names[i+16],reg.gpr[i+16]);
+			fprintf(stdout, "\n");
 	}
 
-	fprintf(stderr, "FPRs:\n");
+	fprintf(stdout, "FPRs:\n");
 	for(i = 0; i < 16; i++) {
-		fprintf(stderr, "$f%d: 0x%.16llx   ", i, reg.gpr1[i]);
-		fprintf(stderr, "$f%d: 0x%.16llx   ",i+16,reg.gpr1[i+16]);
-			fprintf(stderr, "\n");
+		fprintf(stdout, "$f%d: 0x%.8x   ", i, reg.gpr1[i]);
+		fprintf(stdout, "$f%d: 0x%.8x   ",i+16,reg.gpr1[i+16]);
+			fprintf(stdout, "\n");
 	}
 
 
-	fprintf(stderr,"\n");
-        fprintf(stderr, "Hi:  0x%.16llx   Lo:  0x%.16llx   \n",reg.HI,reg.LO);
-	fprintf(stderr, "PC: 0x%.16llx\n",reg.pc);
-	fprintf(stderr, "\n-----------\n\n");
+	fprintf(stdout,"\n");
+        fprintf(stdout, "Hi:  0x%.16llx   Lo:  0x%.16llx   \n",reg.HI,reg.LO);
+	fprintf(stdout, "\n-----------\n\n");
 
-	fprintf(stderr, "COP0 GPRs:\n");
+	fprintf(stdout, "COP0 GPRs:\n");
 	for(i = 0; i <= 31; i++) {
-		fprintf(stderr, "$%2i: 0x%.16llx   ", i, reg.gpr0[i]);
+		fprintf(stdout, "$%2i: 0x%.16llx   ", i, reg.gpr0[i]);
 		if ((i % 3) == 2) {
-			fprintf(stderr, "\n");
+			fprintf(stdout, "\n");
 		}
 	}
-	fprintf(stderr, "\n");
+	fprintf(stdout, "\n");
+}
+
+// dummy config function
+void config_module(char* conf)
+{
 }

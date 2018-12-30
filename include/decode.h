@@ -1,3 +1,5 @@
+#ifndef DECODE_H
+#define DECODE_H
 #define opcode(a) ((int)a & 0xfc000000)
 #define rs(a) ((a & 0x3E00000)>>21)
 #define base rs
@@ -21,3 +23,4 @@
 #define GBIT(a) ((a&0x1))
 #define ASID(a) ((a&0xFF))
 //#define MASK(a) ((a&0x1FFE000)>>13)
+#endif

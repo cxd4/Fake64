@@ -1,9 +1,9 @@
 Make dma transfers realtime
-Implement interrupts
-Implement exceptions
-update: exceptions just need to be put in place(i hope):
-void Exception(uint32 type);
-Exception(<type here>);
-update sound: figure out wtf bit/dac rate mean 
-tlb
+Implement more exceptions
+update sound, fix interrupt on busy 0->1
+tlb	wi broken ?
+fix that large transfer bug
+clean code
+sp tasks
+
 

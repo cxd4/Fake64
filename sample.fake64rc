@@ -1,0 +1,16 @@
+SetDefault default_modules
+SetRom LINE.V64 liner_art 
+
+Section default_modules {
+	#LoadModule cpu /home/adam/emu/cpucore_pure_c/.libs/libcpu.so
+	LoadModule input /home/adam/emu/bfs_input_module/.libs/libinput.so
+	LoadModule audio /home/adam/emu/rs_audio_module/.libs/libaudiors.so
+	LoadModule video /home/adam/emu/sliders_video_module/.libs/libvideo.so
+
+	Include input_defaults
+}
+
+Section listening_to_music {
+	Include default
+	LoadModule audio /home/adam/emu/bfs_audio_module/.libs/libaudio.so
+}

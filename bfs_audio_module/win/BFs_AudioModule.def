@@ -1,0 +1,11 @@
+LIBRARY BFs_AudioModule
+EXPORTS 
+   
+		ai_init  
+		ai_deinit
+
+		ai_dma_request
+		ai_getlength
+
+		module_id
+		config_module

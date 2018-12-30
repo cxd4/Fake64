@@ -1,4 +1,7 @@
-#define RAM_SIZE	0x003FFFFF
+#ifndef MEMORY_H
+#define MEMORY_H
+
+#define RAM_SIZE	0x00800000
 
 #define DRAM_BASE_REG	0x03F00000
 #define SP_DMEM		0x04000000
@@ -18,12 +21,11 @@
 #define PIF_MEM_BASE	0x1FC00000
 
 extern uint8 *RDREGS;		// RDRAM registers
-extern uint8 *SPDMEM;
-extern uint8 *SPIMEM;
+extern uint8 *SPDIMEM;
 extern uint8 *SPREGS;		// SP registers
 extern uint8 *SP_REG;
 extern uint8 *DPREGS;		// DP registers
-extern uint8 *DPSPANREGS;	// DP span registers
+extern uint8 *DPSREGS;		// DP span registers
 extern uint8 *MIREGS;		// MIPS Interface registers
 extern uint8 *VIREGS;		// Video Interface registers
 extern uint8 *AIREGS;		// Audio Interface registers
@@ -252,3 +254,4 @@ void init_memory (int romlength);
 #define VI_V_BURST_REG		(VI_BASE_REG+0x2C)
 #define VI_X_SCALE_REG		(VI_BASE_REG+0x30)
 #define VI_Y_SCALE_REG		(VI_BASE_REG+0x34)
+#endif

@@ -1,0 +1,61 @@
+Fake64's Dynamic Recompilation Concepts by HCl
+
+1) Basic Dynamic Recompilation concepts
+
+   DynaRec is based on translating non-recompiled code blocks in n64 
+   (mips r4300i) code to x86 code. This newly written code is stored in a 
+   memory block, and whenever there's a request to execute that block, eg, 
+   reg.pc points to the beginning of the block again, we simply call to the
+   previous recompiled block in x86 code. We will be able to optimize our
+   x86 code just like normal compilers.
+
+   1.1) How we implement it
+
+   The first instruction of a recompiled block is overwritten in RDRAM with
+   a special opcode (opcode 59), that has the address of a recompiled codeblock
+   encoded within, we extract the pointer to the codeblock, and call it.
+   
+   1.2) How we recompile
+
+   1.2.1) Memory allocation & encoding of instructions
+
+   We allocate a new block of memory, making sure the lower 2 bits are zero,
+   and set codeblockpointer to the new block. After that we can use the
+   W8 (8 bits, 1 byte), W16(16 bits, 2 bytes) and W32(32 bits, 4 bytes)
+   functions to write data to the block. These functions will also increase
+   codeblockpointer which always points one byte ahead of our last write.
+   There are x86 opcode wrappers using these functions in x86.c, allowing 
+   us to program in normal x86 assembler, while encoding the instructions 
+   in hexadecimal and writing them to our current codeblock.
+
+   1.2.2) The Recompilers main loop
+
+   The main loops keeps recompiling opcodes till it encounters a branch.
+   It also keeps track of the number of instructions executed, and it has a 
+   temporary PC, which the dynarec opcode encoders use. A block ends when it
+   encounters a branch. The branch sets up the x86 code like this:
+
+     (intel syntax)
+
+      jcc 0x31	     // jump 0x31 byte ahead, cc is the opposite of the branch 
+		     // condition, eg bne becomes je
+
+      MOV eax, &COP0_COUNT   // 6 bytes
+      ADDI eax, count	     // 6 bytes
+      MOV &COP0_COUNT,eax    // 6 bytes
+      MOV &reg.pc, newpc     // 6 bytes
+ 
+      // Depending on newpc&0x80000000
+
+      MOV &reg.pc+4, 0xffffffff // 6 bytes
+              or 
+      MOV &reg.pc+4, 0x00000000 // 6 bytes
+      RET // 1 byte
+
+   After a branch, the loop breaks, and it writes the code to update 
+   count/reg.pc, and it writes a ret.
+
+2) Register Caching
+
+3) Address translation
+

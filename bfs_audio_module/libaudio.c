@@ -1,40 +1,70 @@
-#include <config.h>
+#ifndef WIN32
+	#include <config.h>
+#endif
+
 #include <general.h>
 #include <romheader.h>
 #include <memory.h>
 
 #ifndef GPROF
 
-char *module_id(void) {
+int ai_getlength()
+{
+	return 0;
+}
+
+char *module_id(void)
+{
+#ifdef _DEBUG
+	return("Bluefyre's lovely dummy audio module (DEBUG)");
+#else
 	return("Bluefyre's lovely dummy audio module");
+#endif
 }
 
 #endif
 
-int ai_init(void) {
- printf("audio initialized\n");
+int ai_init(void)
+{
+	printf("audio initialized\n");
+	return 0;
 }
 
-int ai_dma_request(uint64 value,uint8 *airegs,uint32 addr) {
-char play[100];
-static int c=0;
+int ai_dma_request(uint8 *airegs,uint32 addr)
+{
 
+	char play[100];
+	static int c=0;
+	FILE *fp;
+	uint32 i,length;
+	
+	length=*((uint32 *)(airegs+0x04));
 
- int i; 
- FILE *fp;
- uint32 length=*((uint32 *)(airegs+0x04));
-c+=1;
-sprintf(play,"file%d.pcm",c);
+	printf("AI playing from 0x%x, length %d (%d)\nairegs 0x%x\n",addr,*(airegs+0x04),length,airegs);
 
- fp=fopen(play,"w");
- for(i=0;i<=length;i++)
-  {
-    fputc(*((uint8 *)(addr+i)),fp);
-  }
- fclose(fp);
- printf("Dumped  audio buffer encountered\n");
+/*
+#ifdef WIN32
+	return;
+#endif
+  */
+  c+=1;
+/*	sprintf(play,"file%d.pcm",c);
+	fp=fopen(play,"w");
+
+	for(i=0;i<=length;i++)
+	    fputc(*((uint8 *)(addr+i)),fp);
+	fclose(fp);
+	printf("Dumped  audio buffer encountered\n");
+*/	return 0;
 }
 
-int ai_deinit(void) {
- printf("audio deinitialized\n");
+int ai_deinit(void)
+{
+	printf("audio deinitialized\n");
+	return 0;
+}
+
+// dummy config function
+void config_module(char* conf)
+{
 }
