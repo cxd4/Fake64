@@ -17,18 +17,19 @@ char *regnames[] =
 };
 
 void W8(uint8 value)
-{ *((uint8 *)(codeblockpointer))=value;
-  ((char*)codeblockpointer)++;
+{
+    *(uint8 *)(codeblockpointer) = value;
+    codeblockpointer += 1;
 }
-
 void W16(uint16 value)
-{ *((uint16 *)(codeblockpointer))=value;
-  ((char*)codeblockpointer)+=2;
+{
+    *(uint16 *)(codeblockpointer) = value;
+    codeblockpointer += 2;
 }
-
 void W32(uint32 value)
-{ *((uint32 *)(codeblockpointer))=value;
-  ((char*)codeblockpointer)+=4;
+{
+    *(uint32 *)(codeblockpointer) = value;
+    codeblockpointer += 4;
 }
 
 // opcodes, <op> <dest>, <src> form (when printing)
