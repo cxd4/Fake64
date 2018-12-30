@@ -307,7 +307,7 @@ void eCPU_COP1_CCD(void)
 void eCPU_COP1_CCW(void)
 {
 	static char less,equal,unordered,cond;
-	if (isnan(*((int32*)&reg.gpr1[fs(op)])) ||	isnan(*((int32*)&reg.gpr1[ft(op)])))
+	if (isnan(*((float*)&reg.gpr1[fs(op)])) || isnan(*((float*)&reg.gpr1[ft(op)])))
 	{
 		less=0;
 		equal=0;
@@ -337,7 +337,7 @@ void eCPU_COP1_CCW(void)
 void eCPU_COP1_CCL(void)
 {
 	static char less,equal,unordered,cond;
-	if (isnan(*((int64*)&reg.gpr1[fs(op)])) ||	isnan(*((int64*)&reg.gpr1[ft(op)])))
+	if (isnan(*((double*)&reg.gpr1[fs(op)])) || isnan(*((double*)&reg.gpr1[ft(op)])))
 	{
 		less=0;
 		equal=0;
