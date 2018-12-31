@@ -53,6 +53,10 @@ dkms.conf
 
 # Other excess files unique to Fake64
 
+loader
+romloader
+testsuite
+
 configure
 compile
 libtool
@@ -69,6 +73,7 @@ config.status
 config.sub
 
 .deps/
+.libs/
 autom4te.cache/
 Makefile
 Makefile.in
