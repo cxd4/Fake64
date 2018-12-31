@@ -12,7 +12,6 @@
 //#define DEBUG_VI
 //#define X2         // temporarily unsupported
 
-#ifndef STATIC_MODULES
 uint32 frames = 0;
 
 struct screen_attributes {
@@ -25,6 +24,7 @@ struct screen_attributes {
 } sa;
 SDL_Surface *screen;
 
+#ifndef STATIC_MODULES
 char
 *module_id(void)
 {
