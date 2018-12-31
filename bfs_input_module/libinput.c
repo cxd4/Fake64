@@ -3,7 +3,7 @@
 #endif
 
 #include <general.h>
-#include <SDL.h>
+#include <SDL/SDL.h>
 #include <controller.h>
 #include <module.h>
 
