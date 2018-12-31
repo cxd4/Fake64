@@ -36,14 +36,19 @@ void update_pifram();
 
 #ifndef GPROF
 
-char *module_id(void)
+#ifndef STATIC_MODULES
+char
+*module_id(void)
 {
+    return (
 #ifdef _DEBUG
-	return("Bluefyre's basic SDL input core (DEBUG)");
+        "Bluefyre's basic SDL input core (DEBUG)"
 #else
-	return("Bluefyre's basic SDL input core ");
+        "Bluefyre's basic SDL input core "
 #endif
+    );
 }
+#endif
 
 #endif
 

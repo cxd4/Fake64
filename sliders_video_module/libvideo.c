@@ -29,10 +29,13 @@ struct screen_attributes
 
 SDL_Surface *screen;
 
-
-char *module_id(void) {
+#ifndef STATIC_MODULES
+char
+*module_id(void)
+{
 	return ("rs/slider's *basic* video module");
 }
+#endif
 
 #endif
 

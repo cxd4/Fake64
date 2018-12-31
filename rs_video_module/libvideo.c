@@ -29,10 +29,12 @@ struct screen_attributes sa;
 
 SDL_Surface *Screen;
 
+#ifndef STATIC_MODULES
 char *module_id(void)
 {
 	return ("rs' killer video module");
 }
+#endif
 
 
 void vi_status_reg_write(uint32 data)

@@ -34,9 +34,13 @@ int dacrate=0;
 
 #ifndef GPROF
 
-char *module_id(void) {
+#ifndef STATIC_MODULES
+char
+*module_id(void)
+{
 	return("rs's basic audio module (DSP)");
 }
+#endif
 
 #endif
 
