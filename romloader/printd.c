@@ -6,8 +6,8 @@
 debug_level debug_settings[D_MAX_TYPE];
 FILE* debug_fds[D_MAX_TYPE];
 
-void init_debugging() {
-
+void init_debugging(void)
+{
 	int i;
 
 	for (i = 0; i < D_MAX_TYPE; i++) {

@@ -207,7 +207,7 @@ main(int argc, char* argv[])
 
   modules.printd_f = _printd;
   modules.test_debug_f = _test_debug;
-  init_debugging();
+    init_debugging();
 
     romstruct = load_n64_rom(argv[1]);
     dumpheader(romstruct);

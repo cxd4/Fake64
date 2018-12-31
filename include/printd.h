@@ -55,6 +55,8 @@ typedef enum {
 	D_CPU
 } debug_type;
 
+extern void init_debugging(void);
+
 extern int _printd(debug_type, debug_level, char*, ...);
 extern void set_debug(debug_type, debug_level);
 extern int _test_debug(debug_type, debug_level);
