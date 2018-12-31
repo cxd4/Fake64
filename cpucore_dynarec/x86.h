@@ -100,10 +100,13 @@ void CMP_RegWithReg32(uint8 reg1,uint8 reg2);
 
 // os specific
 
-#ifdef WIN32
-	#define POPALLREGS() __asm popad;
-	#define PUSHALLREGS() __asm pushad;
+#if defined(_WIN32) && !defined(_WIN64)
+#define POPALLREGS()	__asm popad;
+#define PUSHALLREGS()	__asm pushad;
+#elif defined(__i386__) && !defined(__x86_64__)
+#define POPALLREGS()	__asm__ ("popa");
+#define PUSHALLREGS()	__asm__ ("pusha");
 #else
-	#define POPALLREGS() __asm__ ("popa");
-	#define PUSHALLREGS() __asm__ ("pusha");
+#define POPALLREGS()
+#define PUSHALLREGS()
 #endif
