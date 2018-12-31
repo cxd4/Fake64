@@ -1,12 +1,12 @@
 #ifndef WIN32
-	#include <config.h>
+#include "config.h"
 #endif
 
 #include <general.h>
 #include <romheader.h>
 #include <memory.h>
 
-#ifndef GPROF
+#ifndef STATIC_MODULES
 
 int ai_getlength()
 {

@@ -1,5 +1,5 @@
 #ifndef WIN32
-	#include <config.h>
+#include "config.h"
 #endif
 
 #include <general.h>
@@ -34,8 +34,6 @@ void init_keymap();
 void reset_keymaps();
 void update_pifram();
 
-#ifndef GPROF
-
 #ifndef STATIC_MODULES
 char
 *module_id(void)
@@ -48,8 +46,6 @@ char
 #endif
     );
 }
-#endif
-
 #endif
 
 void init_SDL()

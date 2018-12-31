@@ -23,12 +23,12 @@
 	#define AUDIO_DIR "./plugins/audio"
 #endif
 
-#ifdef GPROF
-	extern void vi_init();
-	extern void ai_init();
-	extern void main_cpu_loop(struct rom*);
-	extern void vi_deinit();
-	extern void ai_deinit();
+#ifdef STATIC_MODULES
+extern void vi_init();
+extern void ai_init();
+extern void main_cpu_loop(struct rom*);
+extern void vi_deinit();
+extern void ai_deinit();
 #endif
 
 struct module_info  modules;		// holds pointers to all the modules loaded
@@ -149,39 +149,41 @@ int is_module(const struct dirent *name)
 
 char module_name[200];
 
-#ifndef GPROF
-
+#ifndef STATIC_MODULES
 char *pick_module(char *directory)
 {
-  struct dirent **namelist;
-  char buf[200];
-  int n,i,t=0;
+    struct dirent **namelist;
+    char buf[200];
+    int n, i, [<0;126;29Mt = 0;
 
-  n=scandir(directory, &namelist, &is_module, alphasort);
-  if(n<0)
-   { perror("scandir:"); exit(-1); }
-  else
-   { for(i=0;i<n;i++)
-      {
-       sprintf(buf,"%s/%s",directory,namelist[i]->d_name);
-       printf("%d) %s / %s\n",i+1,namelist[i]->d_name,get_module_id(buf));
-      }
-     while(!t | !namelist[t-1])
-      { 
-        printf("\nPick module: ");
+    n = scandir(directory, &namelist, &is_module, alphasort);
+    if (n < 0) {
+        perror("scandir:");
+        exit(-1);
+        return NULL;
+    }
+
+    for (i = 0; i < n; i++) {
+        sprintf(buf, "%s/%s", directory, namelist[i]->d_name);
+        printf(
+            "%d) %s / %s\n",
+            i + 1, namelist[i]->d_name, get_module_id(buf)
+        );
+    }
+
+    while (!t | !namelist[t - 1]) {
+        printf("\nPick module:  ");
         fflush(stdout);
-        fgets(buf,198,stdin);
-        t=atoi(buf);
-      }
-     t--;
-     sprintf(module_name,"%s/%s",directory,namelist[t]->d_name);
-     while(n--)
-	free(namelist[n]);
-     free(namelist);
-     return module_name;
-   }
+        fgets(buf, 198, stdin);
+        t = atoi(buf);
+    }
+    t--;
+    sprintf(module_name, "%s/%s", directory, namelist[t]->d_name);
+    while (n--)
+        free(namelist[n]);
+    free(namelist);
+    return (module_name);
 }
-
 #endif
 
 /*void call_init_pifram(uint8 *here) {
@@ -207,7 +209,7 @@ main(int argc, char* argv[])
   modules.test_debug_f = _test_debug;
   init_debugging();
 
-#ifndef GPROF
+#ifndef STATIC_MODULES
     romstruct = load_n64_rom(argv[1]);
     dumpheader(romstruct);
     fflush(stdout);
@@ -240,7 +242,7 @@ main(int argc, char* argv[])
     read_config(1, romstruct, argv[1]);
 #endif
 
-#ifndef GPROF
+#ifndef STATIC_MODULES
     (*modules.video -> vi_init_f)(&modules);
     (*modules.audio -> ai_init_f)();
     (*modules.cpu   -> main_cpu_loop_f)(romstruct,&modules);

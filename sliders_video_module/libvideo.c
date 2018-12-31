@@ -12,31 +12,24 @@
 //#define DEBUG_VI
 //#define X2         // temporarily unsupported
 
-#ifndef GPROF
+#ifndef STATIC_MODULES
+uint32 frames = 0;
 
-
-uint32 frames=0;
-
-struct screen_attributes
-{
-	int XRes;
-  int YRes;
-  char rbpp;		// requested
-  char ubpp;    // actaul used, we don't need alpha atm
-  char Active;  // whether we have a current mode
-  uint32 Status;
-}sa;
-
+struct screen_attributes {
+    int XRes;
+    int YRes;
+    char rbpp;    // requested
+    char ubpp;    // actaul used, we don't need alpha atm
+    char Active;  // whether we have a current mode
+    uint32 Status;
+} sa;
 SDL_Surface *screen;
 
-#ifndef STATIC_MODULES
 char
 *module_id(void)
 {
-	return ("rs/slider's *basic* video module");
+    return ("rs/slider's *basic* video module");
 }
-#endif
-
 #endif
 
 void vi_status_reg_write(uint32 data) {

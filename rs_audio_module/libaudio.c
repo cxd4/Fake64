@@ -32,16 +32,12 @@ int status;   // return status of system calls
 int bitrate=0;
 int dacrate=0;
 
-#ifndef GPROF
-
 #ifndef STATIC_MODULES
 char
 *module_id(void)
 {
-	return("rs's basic audio module (DSP)");
+    return ("rs's basic audio module (DSP)");
 }
-#endif
-
 #endif
 
 int ai_init()
@@ -52,6 +48,7 @@ int ai_init()
     int fragment_size = 8; /* a buffersize of 2^8 = 256 bytes */
 
 		printf("AI: init rs' module\n");
+		printf("ai_init = %p\n", ai_init);
 
     fd_dsp = open("/dev/dsp", O_WRONLY,0);
     if (fd_dsp ==-1)

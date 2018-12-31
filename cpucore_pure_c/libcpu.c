@@ -23,10 +23,12 @@ extern struct sdebugger debugger;
 void do_a_dump();
 void debug_do_a_dump();
 
-#ifndef GPROF
+#ifndef STATIC_MODULES
 char *module_id(void)
 {
-	return("N64 pure C interpreter cpu core (Version 0.00000002 by Bluefyre and HCl)");
+    return (
+        "N64 pure C interpreter cpu core (Version 0.00000002 by Bluefyre and HCl)"
+    );
 }
 #endif
 
@@ -64,7 +66,8 @@ void main_cpu_loop(struct rom *rom,struct module_info* mods)
 	int disasmcount=0;
 #endif
 	int ret;
-	uint32 addr2;							
+	uint32 addr2;
+
 	currentrom=rom;
 	alloc_memory(rom);
 
