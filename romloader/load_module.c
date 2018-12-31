@@ -161,17 +161,18 @@ cpu_module *load_cpu_core_module(char *name)
 }
 
 char *get_module_id(char *filename)
-{ void *module;
-  char *(*module_id_func)(void);
-  char buf[1024];
-  module=load_module(filename);
-  if(!module)
-   return 0;
-  module_id_func=load_symbol(module,"module_id",filename);
-  if(!module_id_func)
-   return 0;
-  strcpy(buf,(*module_id_func)());
-  dlclose(module);
-  
-  return buf;
+{
+	static char buf[1024];
+	void *module;
+	char *(*module_id_func)(void);
+
+	module=load_module(filename);
+	if (!module)
+		return 0;
+	module_id_func=load_symbol(module,"module_id",filename);
+	if (!module_id_func)
+		return 0;
+	strcpy(buf, (*module_id_func)());
+	dlclose(module);
+	return (&buf[0]);
 }
