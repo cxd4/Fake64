@@ -197,87 +197,63 @@ char *pick_module(char *directory)
 	}
 }*/
 
-main(int argc,char **argv)
-{ struct rom *romstruct;
-  char buf[200];
+int
+main(int argc, char* argv[])
+{
+    struct rom *romstruct;
+    char buf[200];
 
   modules.printd_f = _printd;
   modules.test_debug_f = _test_debug;
   init_debugging();
 
 #ifndef GPROF
+    romstruct = load_n64_rom(argv[1]);
+    dumpheader(romstruct);
+    fflush(stdout);
+    read_config(0, romstruct, argv[1]);
 
-  romstruct=load_n64_rom(argv[1]);
-  dumpheader(romstruct);
-  fflush(stdout);
-  read_config(0, romstruct, argv[1]);
-
-  				       // add ~/.fake64rc support,eg autoselect 
-				       // a module
-  if (!modules.input) {
-   while(!(modules.input = (input_module *)load_input_module(pick_module(INPUT_DIR))))
-    {
-      printf("Couldn't load input module\n");
+    while (modules.input == NULL) {
+        modules.input = (input_module *)load_input_module(pick_module(INPUT_DIR));
+        printf("Address of input module:  %p\n", modules.input);
     }
-  }
+    printf("Input module loaded:  %s\n", (*modules.input->module_id_f)());
 
-  printf("Input module loaded: %s\n", (*modules.input->module_id_f)());
-
-  if (!modules.audio) {
-   while(!(modules.audio = (audio_module *)load_audio_module(pick_module(AUDIO_DIR))))
-    {
-      printf("Couldn't load audio module\n");
+    while (modules.audio == NULL) {
+        modules.audio = (audio_module *)load_audio_module(pick_module(AUDIO_DIR));
+        printf("Address of audio module:  %p\n", modules.audio);
     }
-  }
+    printf("Audio module loaded:  %s\n", (*modules.audio->module_id_f)());
 
-  printf("Audio module loaded: %s\n", (*modules.audio->module_id_f)());
-
-  if (!modules.video) {
-   while(!(modules.video = (video_module *)load_video_module(pick_module(VIDEO_DIR))))
-    {
-      printf("Couldn't load video module\n");
+    while (modules.video == NULL) {
+        modules.video = (video_module *)load_video_module(pick_module(VIDEO_DIR));
+        printf("Address of video module:  %p\n", modules.video);
     }
-  }
+    printf("Video module loaded: %s\n", (*modules.video->module_id_f)());
 
-  printf("Video module loaded: %s\n", (*modules.video->module_id_f)());
-
-  if (!modules.cpu) {
-   while(!(modules.cpu = (cpu_module *)load_cpu_core_module(pick_module(CPU_DIR))))
-    {
-      printf("Couldn't load cpucore module\n");
+    while (modules.cpu == NULL) {
+        modules.cpu = (cpu_module *)load_cpu_core_module(pick_module(CPU_DIR));
+        printf("Address of CPU core:  %p\n", modules.cpu);
     }
-  }
+    printf("CPU core loaded: %s\n", (*modules.cpu->module_id_f)());
 
-  printf("Cpu core loaded: %s\n",(*modules.cpu->module_id_f)());
-
-  read_config(1, romstruct, argv[1]);
-
+    read_config(1, romstruct, argv[1]);
 #endif
 
 #ifndef GPROF
-
-  (*modules.video->vi_init_f)(&modules);
-
-  (*modules.audio->ai_init_f)();
-  
-  (*modules.cpu->main_cpu_loop_f)(romstruct,&modules);
-
-  (*modules.audio->ai_deinit_f)();
-
-  (*modules.video->vi_deinit_f)();
-
+    (*modules.video -> vi_init_f)(&modules);
+    (*modules.audio -> ai_init_f)();
+    (*modules.cpu   -> main_cpu_loop_f)(romstruct,&modules);
+    (*modules.audio -> ai_deinit_f)();
+    (*modules.video -> vi_deinit_f)();
+#else
+    vi_init();
+    ai_init();
+    main_cpu_loop(romstruct);
+    ai_deinit();
+    vi_deinit();
 #endif
 
-#ifdef GPROF
-
-  vi_init();
-  ai_init();
-  main_cpu_loop(romstruct);
-  ai_deinit();
-  vi_deinit();
-
-#endif
-
-  dfree(romstruct->image);
-  dfree(romstruct);
+    dfree(romstruct->image);
+    dfree(romstruct);
 }
