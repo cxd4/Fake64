@@ -8,6 +8,9 @@
 #include <printd.h>
 #include <ostask.h>
 
+#include "romheader.h"
+
+
 // printd comes free with modules, thought this was a sensible idea
 
 // these really should be uint8* etc but it breaks msvc   (why?)
@@ -33,7 +36,7 @@ struct cpu_m
 	void *module;
 #endif
 
-	void (*main_cpu_loop_f)(struct rom *rom,struct module_info* modules);
+	void (*main_cpu_loop_f)(struct rom* rom, struct module_info* modules);
 	char *(*module_id_f)(void);
 	void (*config_module_f)(char*);
   void* (*translate_addr_f)(unsigned int);

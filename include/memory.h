@@ -38,6 +38,7 @@ extern uint8 *ROM;		// rom(header&everythin)
 
 extern int RAM_OFFSET_MAP[0x2000];
 
+#include "romheader.h"
 int alloc_memory (struct rom *rom);
 void init_memory (int romlength);
 
