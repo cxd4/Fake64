@@ -24,82 +24,120 @@ uint8 *ROM	= NULL;   // rom(header&everythin)
 
 int RAM_OFFSET_MAP[0x2000];
 
-int alloc_memory (struct rom *rom) {
-	ROM=rom->header;
-        if (RDREGS == NULL) {
-                RDREGS=(uint8 *)calloc(1,1024*1024); // 1mb 0x03f00000-0x03fffff
-                if (RDREGS == NULL)     return -1; }
+int alloc_memory(struct rom *rom)
+{
+	ROM = rom->header;
 
-        if (SPDIMEM == NULL) {
-                SPDIMEM=(uint8 *)calloc(1,0x2000);
-                if (SPDIMEM == NULL)     return -1; }
+	if (RDREGS == NULL) {
+		RDREGS = (uint8 *)calloc(1, 1024*1024); /* 1 MB 0x03f00000-0x03fffff */
+		if (RDREGS == NULL)
+			return -1;
+	}
 
-        if (SPREGS == NULL) {
-                SPREGS=(uint8 *)calloc(1,0x20);
-                if (SPREGS == NULL)     return -1; }
+	if (SPDIMEM == NULL) {
+		SPDIMEM = (uint8 *)calloc(1, 0x2000);
+		if (SPDIMEM == NULL)
+			return -1;
+	}
 
-        if (SP_REG == NULL) {
-                SP_REG=(uint8 *)calloc(1,0x20);
-                if (SP_REG == NULL)     return -1; }	
+	if (SPREGS == NULL) {
+		SPREGS = (uint8 *)calloc(1, 0x20);
+		if (SPREGS == NULL)
+			return -1;
+	}
 
-        if (DPREGS == NULL) {
-                DPREGS=(uint8 *)calloc(1,0x20);
-                if (DPREGS == NULL)     return -1; }
+	if (SP_REG == NULL) {
+		SP_REG = (uint8 *)calloc(1, 0x20);
+		if (SP_REG == NULL)
+			return -1;
+	}
 
-        if (DPSREGS == NULL) {
-                DPSREGS=(uint8 *)calloc(1,0x10);
-                if (DPSREGS == NULL) return -1; }
+	if (DPREGS == NULL) {
+		DPREGS = (uint8 *)calloc(1, 0x20);
+		if (DPREGS == NULL)
+			return -1;
+	}
 
-        if (MIREGS == NULL) {
-                MIREGS=(uint8 *)calloc(1,0x10);
-                if (MIREGS == NULL)     return -1; }
+	if (DPSREGS == NULL) {
+		DPSREGS = (uint8 *)calloc(1, 0x10);
+		if (DPSREGS == NULL)
+			return -1;
+	}
 
-        if (VIREGS == NULL) {
-                VIREGS=(uint8 *)calloc(1,0x38);
-                if (VIREGS == NULL) return -1; }
+	if (MIREGS == NULL) {
+		MIREGS = (uint8 *)calloc(1, 0x10);
+		if (MIREGS == NULL)
+			return -1;
+	}
 
-        if (AIREGS == NULL) {
-                AIREGS=(uint8 *)calloc(1,0x18);
-                if (AIREGS == NULL) return -1; }
+	if (VIREGS == NULL) {
+		VIREGS = (uint8 *)calloc(1, 0x38);
+		if (VIREGS == NULL)
+			return -1;
+	}
 
-        if (PIREGS == NULL) {
-                PIREGS=(uint8 *)calloc(1,0x34);
-                if (PIREGS == NULL) return -1; }
+	if (AIREGS == NULL) {
+		AIREGS = (uint8 *)calloc(1, 0x18);
+		if (AIREGS == NULL)
+			return -1;
+	}
 
-        if (RIREGS == NULL) {
-                RIREGS=(uint8 *)calloc(1,0x20);
-                if (RIREGS == NULL) return -1; }
+	if (PIREGS == NULL) {
+		PIREGS = (uint8 *)calloc(1, 0x34);
+		if (PIREGS == NULL)
+			return -1;
+	}
 
-        if (SIREGS == NULL) {
-                SIREGS=(uint8 *)calloc(1,0x1C);
-                if (SIREGS == NULL) return -1; }
+	if (RIREGS == NULL) {
+		RIREGS = (uint8 *)calloc(1, 0x20);
+		if (RIREGS == NULL)
+			return -1;
+	}
 
-        if (PIFMEM == NULL) {
-                PIFMEM=(uint8 *)calloc(1,0x800);
-                if (PIFMEM == NULL) return -1; }
+	if (SIREGS == NULL) {
+		SIREGS = (uint8 *)calloc(1, 0x1C);
+		if (SIREGS == NULL)
+			return -1;
+	}
 
-        if (RDRAM == NULL) {
-                RDRAM=(uint8 *)calloc(1,RAM_SIZE);
-                if (RDRAM == NULL)     return -1; }
+	if (PIFMEM == NULL) {
+		PIFMEM = (uint8 *)calloc(1, 0x800);
+		if (PIFMEM == NULL)
+			return -1;
+	}
 
-        if (C2A1 == NULL) {
-                C2A1=(uint8 *)calloc(1,0x8000);
-                if (C2A1 == NULL)     return -1; }
+	if (RDRAM == NULL) {
+		RDRAM = (uint8 *)calloc(1, RAM_SIZE);
+		if (RDRAM == NULL)
+			return -1;
+	}
 
-        if (C2A2 == NULL) {
-                C2A2=(uint8 *)calloc(1,0x20000);
-                if (C2A2 == NULL)     return -1; }
+	if (C2A1 == NULL) {
+		C2A1 = (uint8 *)calloc(1, 0x8000);
+		if (C2A1 == NULL)
+			return -1;
+	}
 
-        if (C1A1 == NULL) {
-                C1A1=(uint8 *)calloc(1,0x8000);
-                if (C1A1 == NULL)     return -1; }
+	if (C2A2 == NULL) {
+		C2A2 = (uint8 *)calloc(1, 0x20000);
+		if (C2A2 == NULL)
+			return -1;
+	}
 
-        if (C1A3 == NULL) {
-                C1A3=(uint8 *)calloc(1,0x8000);
-                if (C1A3 == NULL)     return -1; }
+	if (C1A1 == NULL) {
+		C1A1 = (uint8 *)calloc(1, 0x8000);
+		if (C1A1 == NULL)
+			return -1;
+	}
+
+	if (C1A3 == NULL) {
+		C1A3 = (uint8 *)calloc(1, 0x8000);
+		if (C1A3 == NULL)
+			return -1;
+	}
 
 	init_memory(rom->length);
-        return 0;
+	return 0;
 }
 
 void init_memory(int romlength)
