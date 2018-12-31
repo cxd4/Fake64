@@ -154,7 +154,7 @@ char *pick_module(char *directory)
 {
     struct dirent **namelist;
     char buf[200];
-    int n, i, [<0;126;29Mt = 0;
+    int n, i, t = 0;
 
     n = scandir(directory, &namelist, &is_module, alphasort);
     if (n < 0) {
