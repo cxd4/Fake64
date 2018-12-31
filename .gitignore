@@ -76,6 +76,7 @@ dkms.conf
 # Other excess files unique to Fake64
 
 loader
+loader_static
 romloader
 testsuite
 
