@@ -51,6 +51,28 @@ Module.symvers
 Mkfile.old
 dkms.conf
 
+# Nintendo 64 executables
+*.nus
+*.NUS
+*.bin
+*.BIN
+*.rom
+*.ROM
+
+*.jap
+*.JAP
+*.usa
+*.USA
+*.eur
+*.EUR
+
+*.z64
+*.Z64
+*.v64
+*.V64
+*.n64
+*.N64
+
 # Other excess files unique to Fake64
 
 loader
