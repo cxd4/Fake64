@@ -77,7 +77,7 @@ dkms.conf
 
 loader
 loader_static
-romloader
+romloader/romloader
 testsuite
 
 configure

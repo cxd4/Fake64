@@ -26,6 +26,11 @@ int RAM_OFFSET_MAP[0x2000];
 
 int alloc_memory(struct rom *rom)
 {
+	if (rom == NULL) {
+		fputs("alloc_memory(NULL)\n", stderr);
+		exit(EXIT_FAILURE);
+		return -1;
+	}
 	ROM = rom->header;
 
 	if (RDREGS == NULL) {

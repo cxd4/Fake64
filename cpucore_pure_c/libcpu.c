@@ -68,13 +68,13 @@ void main_cpu_loop(struct rom *rom,struct module_info* mods)
 	int ret;
 	uint32 addr2;
 
-	currentrom=rom;
+	currentrom = rom;
 	alloc_memory(rom);
 
 	modules=mods;
 
 	init_pifram(modules, PIFMEM);
-	
+
 // setup disassemble output to stdout
   disfd=stdout;
 

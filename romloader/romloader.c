@@ -209,12 +209,12 @@ main(int argc, char* argv[])
   modules.test_debug_f = _test_debug;
   init_debugging();
 
-#ifndef STATIC_MODULES
     romstruct = load_n64_rom(argv[1]);
     dumpheader(romstruct);
     fflush(stdout);
     read_config(0, romstruct, argv[1]);
 
+#ifndef STATIC_MODULES
     while (modules.input == NULL) {
         modules.input = (input_module *)load_input_module(pick_module(INPUT_DIR));
         printf("Address of input module:  %p\n", modules.input);
