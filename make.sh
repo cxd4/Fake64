@@ -23,4 +23,5 @@ $src/sliders_video_module/libvideo.c \
 $src/rs_audio_module/libaudio.c \
 $src/bfs_input_module/libinput.c"
 
+rm loader_static
 gcc -o loader_static $SRC_LIST -DSTATIC_MODULES -pg -I$src/include -I$src/romloader -I$src/cpucore_pure_c -lm -ldl -lSDL -lpthread -lGL -l GLU
