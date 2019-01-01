@@ -130,13 +130,14 @@ load_n64_rom(char* filename)
 
 	/* TODO: convert endian... see endian.c */
 	romstruct = (struct rom *)dmalloc(sizeof(struct rom));
+	memcpy(romstruct, rom, sizeof(struct rom) - 20);
 	romstruct->length   = bytes;
 	romstruct->image    = rom;
 	romstruct->header   = rom;
 	romstruct->bootcode = rom + 0x40;
 	romstruct->progcode = rom + 0x1000;
 	byteswap(romstruct->length, romstruct->image);
-	memcpy(romstruct, rom, sizeof(struct rom) - 20);
+
 	fix_rom_name(romstruct->name);
 	return (romstruct);
 }
