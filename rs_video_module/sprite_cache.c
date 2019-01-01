@@ -1,8 +1,9 @@
 #include <stdlib.h>
+#include <SDL/SDL.h>
+
 #include <general.h>
 #include "config_options.h"
 #include "rcp_state.h"
-#include "SDL.h"
 
 uint32* spriteind[0x10000];
 

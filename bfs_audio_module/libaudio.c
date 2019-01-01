@@ -6,13 +6,12 @@
 #include <romheader.h>
 #include <memory.h>
 
-#ifndef STATIC_MODULES
-
-int ai_getlength()
+int ai_getlength(void)
 {
 	return 0;
 }
 
+#ifndef STATIC_MODULES
 char *module_id(void)
 {
 #ifdef _DEBUG
@@ -21,7 +20,6 @@ char *module_id(void)
 	return("Bluefyre's lovely dummy audio module");
 #endif
 }
-
 #endif
 
 int ai_init(void)
@@ -64,7 +62,9 @@ int ai_deinit(void)
 	return 0;
 }
 
-// dummy config function
+/* dummy config function */
+#ifndef STATIC_MODULES
 void config_module(char* conf)
 {
 }
+#endif

@@ -306,10 +306,12 @@ int vi_deinit(void)
 }
 
 
-// dummy config function
+/* dummy config function */
+#ifndef STATIC_MODULES
 void config_module(char* conf)
 {
 }
+#endif
 
 void rcp_command(uint8* data, int len)
 {

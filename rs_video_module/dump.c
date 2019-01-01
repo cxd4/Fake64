@@ -13,7 +13,7 @@
 
 #include <GL/gl.h>
 #include <GL/glu.h>
-#include <SDL.h>
+#include <SDL/SDL.h>
 
 static char* moveword_indices[] = { "G_MW_MATRIX", "G_MW_NUMLIGHT",
 	"G_MW_CLIP", "G_MW_SEGMENT", "G_MW_FOG", "G_MW_LIGHTCOL",
