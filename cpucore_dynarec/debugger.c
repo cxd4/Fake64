@@ -353,7 +353,14 @@ void debugger_step(void)
 	//	printf("There are %x fishes in the sea\n",searching);
 }
       if (searching)
-				printf("Found at 0x%x\n",(uint32)ra-(((addr)&0x1fffffff)+RAM_OFFSET_MAP[((addr)&0x1fffffff)>>16])+addr);
+				printf(
+					"Found at %p\n",
+					(void *)ra -
+						(void *)(
+							((addr) & 0x1FFFFFFF) +
+							RAM_OFFSET_MAP[((addr)&0x1FFFFFFF) >> 16]
+						) + addr
+				);
       else
 				printf("%s not found\n",string);
 			signal(11,oldh);

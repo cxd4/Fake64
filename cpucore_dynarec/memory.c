@@ -22,7 +22,7 @@ uint8 *C1A1     = NULL;   // Cartridge Domain 1 Address 1 32kb sram
 uint8 *C1A3     = NULL;   // Cartridge Domain 1 Address 3 32kb sram
 uint8 *ROM	= NULL;   // rom(header&everythin)
 
-int RAM_OFFSET_MAP[0x2000];
+void* RAM_OFFSET_MAP[(0x1FFFFFFF + 1) >> 16];
 
 int alloc_memory (struct rom *rom) {
 	ROM=rom->header;
