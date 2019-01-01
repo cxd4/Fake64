@@ -100,7 +100,6 @@ void init_material() {
 
 int vi_init(struct module_info* modptr)
 {
-  float ratio;
 	SDL_VideoInfo *Info;
 
 	memset(&sa,0,sizeof(sa));
@@ -127,8 +126,6 @@ int vi_init(struct module_info* modptr)
 	sa.Width=win_width;
 	sa.Height=win_height;
 	sa.ubpp=BPP;//			Info->vfmt->BitsPerPixel;
-  ratio = (float) sa.Width / (float) sa.Height;
-
 
 	SDL_GL_SetAttribute( SDL_GL_RED_SIZE, 5 );
 	SDL_GL_SetAttribute( SDL_GL_GREEN_SIZE, 5 );

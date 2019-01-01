@@ -180,6 +180,10 @@ uint32* get_new_sprite(struct sprite_cfg *sprite) {
 				break;
 			default:
 				printf("You really should code this ...\n");
+				printf(
+					"Relevant?  size = %i, chsize = %i\n",
+					size, chsize
+				);
 				break;
 		}
 	}

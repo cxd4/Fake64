@@ -17,20 +17,26 @@
 extern struct module_info* modules;
 extern void do_displaylist(uint8*, int);
 
-void wrong_turn_on_lights() {
-
+#if 0
+#define CALL_glMaterialfv
+#endif
+void wrong_turn_on_lights()
+{
+	GLfloat light_position[] = {1.0, 1.0, 1.0, 0.0};
+#ifdef CALL_glMaterialfv
 	GLfloat mat_specular[] = {1.0, 1.0, 1.0, 1.0};
 	GLfloat mat_shininess[] = {50.0};
-	
-	GLfloat light_position[] = {1.0, 1.0, 1.0, 0.0};
+#endif
 
 	glLightModelf(GL_LIGHT_MODEL_TWO_SIDE, 1.0);
 
 	glClearColor(0.0, 0.0, 0.0, 0.0);
 	glShadeModel(GL_SMOOTH);
 
-//	glMaterialfv(GL_FRONT, GL_SPECULAR, mat_specular);
-//	glMaterialfv(GL_FRONT, GL_SHININESS, mat_shininess);
+#ifdef CALL_glMaterialfv
+	glMaterialfv(GL_FRONT, GL_SPECULAR, mat_specular);
+	glMaterialfv(GL_FRONT, GL_SHININESS, mat_shininess);
+#endif
 	glLightfv(GL_LIGHT0, GL_POSITION, light_position);
 
 	glEnable(GL_LIGHTING);
@@ -38,9 +44,14 @@ void wrong_turn_on_lights() {
 	glEnable(GL_DEPTH_TEST);
 }
 
-void turn_on_lights() {
-
+#if 0
+#define CALL_glLightModelfv
+#endif
+void turn_on_lights()
+{
+#ifdef CALL_glLightModelfv
 	GLfloat ambient[4] = {0.0, 0.0, 0.0, 1.0};
+#endif
 	GLfloat pos[4] = {1.0, 1.0, 1.0, 0.0};
 	GLfloat spec[4] = {1.0, 0.0, 0.0, 1.0};
 	GLfloat mat_spec[4] = {1.0, 1.0, 1.0, 1.0};
@@ -70,12 +81,12 @@ void turn_on_lights() {
 
 		glEnable(GL_LIGHT1+i);
 	}
-
+#ifdef CALL_glLightModelfv
 	ambient[0] = ((float)rcpst.ambient.col[0]) / 255.0;
 	ambient[1] = ((float)rcpst.ambient.col[1]) / 255.0;
 	ambient[2] = ((float)rcpst.ambient.col[2]) / 255.0;
-
-	//glLightModelfv(GL_LIGHT_MODEL_AMBIENT, ambient);
+	glLightModelfv(GL_LIGHT_MODEL_AMBIENT, ambient);
+#endif
 }
 
 void perform_moveword(rdp_command cmd) {

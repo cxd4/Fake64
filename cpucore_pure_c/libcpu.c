@@ -65,7 +65,6 @@ void main_cpu_loop(struct rom *rom,struct module_info* mods)
 #ifdef DEBUG
 	int disasmcount=0;
 #endif
-	int ret;
 	uint32 addr2;
 
 	currentrom = rom;
@@ -135,7 +134,6 @@ void main_cpu_loop(struct rom *rom,struct module_info* mods)
 
   //reg.pc=0xFFFFFFFF00000000+ *((int32*)(RAM_OFFSET_MAP[0x400]+0x4000008));
   reg.pc=0xffffffffa4000040; // bootcode
-	ret = 0;
 	reg.gpr0[9] = 0;
 	lerror=0;
 
