@@ -100,7 +100,7 @@ void init_material() {
 
 int vi_init(struct module_info* modptr)
 {
-	SDL_VideoInfo *Info;
+	const SDL_VideoInfo *Info;
 
 	memset(&sa,0,sizeof(sa));
 
@@ -114,13 +114,10 @@ int vi_init(struct module_info* modptr)
 		exit(-1);
 	}
 
-
-	Info=SDL_GetVideoInfo();
-
-	if(!Info)
-	{
-		printd(D_VI, D_ERROR, "VI: Failed to get current mode info\n");
-		exit(-1);
+	Info = SDL_GetVideoInfo();
+	if (Info = NULL) {
+		printd(D_VI, D_ERROR, "VI: Failed to get current mode info.\n");
+		exit (-1);
 	}
 
 	sa.Width=win_width;
