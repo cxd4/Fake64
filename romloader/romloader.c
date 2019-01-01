@@ -84,41 +84,61 @@ void fix_rom_name(char *name)
         }
 }
 
-struct rom * load_n64_rom(char *filename)
-{ char *rom;
-  struct rom *romstruct;
-  FILE *fp;
-  int bytes;
-  int length;
-  if(!(fp=fopen(filename,"rb")))
-   { perror("load_n64_rom");
-     printf("Can't open the rom.....\n");
-     exit(-1);
-   }
-  fseek(fp,0,SEEK_END);
-  length=ftell(fp);
-  if(!(rom=(uint8 *) calloc(1,length>=0x800000 ? length : 0x800000)))
-   { perror("load_n64_rom");
-     printf("Cannot allocate memory.....\n");
-     exit(-1);
-   }
-  if(length % 8)
-   printf("Warning: Length of rom isn't a multiple of 8\n");
-  rewind(fp);
-  bytes=fread(rom,1,length,fp);
-  printf("Rom loaded.. %d/%d bytes read\n",bytes,length);
-   
-    // TODO: convert endian... see endian.c
-  romstruct=(struct rom *)dmalloc(sizeof(struct rom));
-  romstruct->length=bytes;
-  romstruct->image=rom;
-  romstruct->header=rom;
-  romstruct->bootcode=rom+0x40;
-  romstruct->progcode=rom+0x1000;
-  byteswap(romstruct->length,romstruct->image);
-  memcpy(romstruct,rom,sizeof(struct rom)-20);  
-  fix_rom_name(romstruct->name);
-  return(romstruct);
+struct rom *
+load_n64_rom(char* filename)
+{
+	uint8* rom;
+	struct rom *romstruct;
+	FILE *fp;
+	int bytes;
+	int length;
+
+	fp = fopen(filename, "rb");
+	if (fp == NULL) {
+		perror("load_n64_rom");
+		puts("Can't open the rom...");
+		exit(-1);
+	}
+
+	fseek(fp, 0, SEEK_END);
+	length = ftell(fp);
+	if (length > 64 * 1024 * 1024) {
+		printf("Warning:  Truncating ROM size %i to 64 MiB.\n", length);
+		length = 64 * 1024 * 1024;
+	}
+
+#if 0
+	if (length < 0x800000)
+		length = 0x800000;
+	rom = (uint8 *)calloc(1, length);
+#else
+	rom = (length >= 0x800000) ?
+		calloc(1, length) : calloc(1, 0x800000)
+	;
+#endif
+	if (rom == NULL) {
+		perror("load_n64_rom");
+		puts("Cannot allocate memory...");
+		exit(-1);
+	}
+
+	if (length % 8 != 0)
+		puts("Warning:   ROM size isn't a multiple of 8.");
+	rewind(fp);
+	bytes = fread(rom, 1, length, fp);
+	printf("ROM loaded:  %d/%d bytes read.\n", bytes, length);
+
+	/* TODO: convert endian... see endian.c */
+	romstruct = (struct rom *)dmalloc(sizeof(struct rom));
+	romstruct->length   = bytes;
+	romstruct->image    = rom;
+	romstruct->header   = rom;
+	romstruct->bootcode = rom + 0x40;
+	romstruct->progcode = rom + 0x1000;
+	byteswap(romstruct->length, romstruct->image);
+	memcpy(romstruct, rom, sizeof(struct rom) - 20);
+	fix_rom_name(romstruct->name);
+	return (romstruct);
 }
 
 void dumpheader(struct rom *rom)
