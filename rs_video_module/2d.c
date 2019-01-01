@@ -51,15 +51,22 @@ void render2d_16(uint16* addr)
 
 void render2d_32(uint16* addr)
 {
-	printf("render 32 untested\n");
 	glDisable(GL_DEPTH_TEST);
-	glEnable(GL_BLEND);
-	glBlendFunc(GL_ONE_MINUS_SRC_ALPHA,GL_ZERO);
+	glDisable(GL_BLEND);
 
-	glRasterPos2i(0,sa.Height-1);
-	glPixelZoom((float)sa.Height/(float)sa.YRes,-(float)sa.Width/(float)sa.XRes);//-sa.Height/sa.YRes);
-	glDrawPixels(sa.XRes,sa.YRes,GL_RGBA, GL_UNSIGNED_BYTE, addr);
-
+	glRasterPos2i(0, sa.Height - 1);
+	glPixelZoom(
+		(float)sa.Height/(float)sa.YRes,
+		-(float)sa.Width/(float)sa.XRes
+		/* -sa.Height/sa.YRes */
+	);
+	glDrawPixels(
+		sa.XRes,
+		sa.YRes,
+		GL_RGBA,
+		GL_UNSIGNED_BYTE,
+		addr
+	);
 
 	glEnable(GL_DEPTH_TEST);
 	glDisable(GL_BLEND);
