@@ -15,8 +15,9 @@ static char *button_names[16] = {
         "right", "left", "down", "up", "start", "z", "b", "a", "cright",
         "cleft", "cdown", "cup", "pright", "pleft", "tac", "ym reef" };
 
-void config_module(char* conf) {
-
+#ifndef STATIC_MODULES
+void config_module(char* conf)
+{
         int conflen, i;
         char *cont, *button, *scancode;
         int co, buttonid, scan;
@@ -74,3 +75,4 @@ void config_module(char* conf) {
 		}
         }
 }
+#endif

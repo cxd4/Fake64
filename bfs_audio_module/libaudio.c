@@ -1,8 +1,4 @@
-#ifndef WIN32
-#include "config.h"
-#endif
-
-#include <general.h>
+#include "general.h"
 #include <romheader.h>
 #include <memory.h>
 

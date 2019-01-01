@@ -1,11 +1,10 @@
 #ifdef WIN32
 	#include <SDL.h>
 #else
-	#include <config.h>
 	#include <SDL/SDL.h>
 #endif
 
-#include <general.h>
+#include "general.h"
 #include <stdio.h>
 #include <stdlib.h>
 

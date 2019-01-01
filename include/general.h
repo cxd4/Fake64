@@ -9,7 +9,9 @@
 	#include <string.h>
 	#include <stdlib.h>
 #else
+#ifndef STATIC_MODULES
 	#include <config.h>
+#endif
 #endif
 
 

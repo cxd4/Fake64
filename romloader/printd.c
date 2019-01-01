@@ -1,7 +1,10 @@
 #include <printd.h>
 #include <stdarg.h>
 #include <stdio.h>
-#include <config.h>
+
+#ifndef STATIC_MODULES
+#include "config.h"
+#endif
 
 debug_level debug_settings[D_MAX_TYPE];
 FILE* debug_fds[D_MAX_TYPE];

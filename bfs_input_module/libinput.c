@@ -1,8 +1,5 @@
-#ifndef WIN32
-#include "config.h"
-#endif
+#include "general.h"
 
-#include <general.h>
 #include <SDL/SDL.h>
 #include <controller.h>
 #include <module.h>

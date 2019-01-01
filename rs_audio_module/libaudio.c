@@ -6,8 +6,7 @@
 #include <stdio.h>
 #include <linux/soundcard.h>
 
-#include <config.h>
-#include <general.h>
+#include "general.h"
 #include <romheader.h>
 #include <memory.h>
 

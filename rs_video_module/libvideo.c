@@ -1,9 +1,9 @@
 #ifdef WIN32
-	#include <windows.h>
-#else
-	#include <config.h>
+#include <windows.h>
 #endif
-#include <general.h>
+
+#include "general.h"
+
 #include <SDL/SDL.h>
 #include <stdio.h>
 #include <stdlib.h>

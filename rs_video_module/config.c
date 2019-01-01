@@ -1,11 +1,12 @@
 #include <string.h>
 #include <stdlib.h>
 
-#include <general.h>
+#include "general.h"
 #include "config_options.h"
 
-void config_module(char* conf) {
-
+#ifndef STATIC_MODULES
+void config_module(char* conf)
+{
 	int i, conflen;
 	char *cont;
 	int co;
@@ -42,3 +43,4 @@ void config_module(char* conf) {
 		rcp_break_unim = 1;
 	}
 }
+#endif
