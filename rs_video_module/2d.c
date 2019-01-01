@@ -9,6 +9,8 @@
 #include <GL/gl.h>
 #include <GL/glu.h>
 
+/* SDL_GL_SwapBuffers() */
+#include <SDL/SDL.h>
 
 uint8 spack[640*480][4];
 extern struct screen_attributes sa;
@@ -49,7 +51,6 @@ void render2d_16(uint16* addr)
 
 void render2d_32(uint16* addr)
 {
-
 	printf("render 32 untested\n");
 	glDisable(GL_DEPTH_TEST);
 	glEnable(GL_BLEND);
@@ -65,13 +66,13 @@ void render2d_32(uint16* addr)
 }
 void render2d(uint16* addr)
 {
-	if (sa.Active)
-	{
+	if (sa.Active) {
 		if (fb2d_active) { // config option video 2d
-			if (sa.rbpp==16)
+			if (sa.rbpp == 16) {
 				render2d_16(addr);
-			else
+			} else {
 				render2d_32(addr);
+			}
 		}
 	}
 	SDL_GL_SwapBuffers();
