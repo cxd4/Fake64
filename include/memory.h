@@ -1,7 +1,10 @@
 #ifndef MEMORY_H
 #define MEMORY_H
 
-#define RAM_SIZE	0x00800000
+#define RAM_SIZE	0x00800000ul
+#if (RAM_SIZE > 0x20000000ul)
+#error Cannot allocate this much RDRAM with the RCP memory model.
+#endif
 
 #define DRAM_BASE_REG	0x03F00000
 #define SP_DMEM		0x04000000
@@ -36,7 +39,7 @@ extern uint8 *PIFMEM;		// PIF area
 extern uint8 *RDRAM;		// rdram
 extern uint8 *ROM;		// rom(header&everythin)
 
-extern int RAM_OFFSET_MAP[0x2000];
+extern void* RAM_OFFSET_MAP[];
 
 #include "romheader.h"
 int alloc_memory (struct rom *rom);

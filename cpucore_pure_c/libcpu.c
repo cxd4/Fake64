@@ -127,22 +127,22 @@ void main_cpu_loop(struct rom *rom,struct module_info* mods)
 //    MI_VERSION_REG_R = 0x01010101;
 	reg.CPUdelayPC=0; reg.CPUdelay=0;
 
+	/* Copy bootcode to SP_DMEM. */
+	memcpy(RAM_OFFSET_MAP[0x0400] + 0x04000000, rom->header, 0x1000);
 
-
-	// copy bootcode to SP_DMEM
-	memcpy((void *)(RAM_OFFSET_MAP[0x400]+0x4000000),rom->header,0x1000); 
-	
-
-
-  //reg.pc=0xFFFFFFFF00000000+ *((int32*)(RAM_OFFSET_MAP[0x400]+0x4000008));
-  reg.pc=0xffffffffa4000040; // bootcode
+#if 0
+	reg.pc =
+		0xFFFFFFFF00000000 +
+		*(int32 *)(RAM_OFFSET_MAP[0x400] + 0x4000008);
+#endif
+	reg.pc = 0xFFFFFFFFA4000040; // bootcode
 	reg.gpr0[9] = 0;
-	lerror=0;
+	lerror = 0;
 
-	/* Do CRC of boot code, and set CIC accordinly. */
+	/* Do CRC of boot code, and set CIC accordingly. */
 	crc = 0x00000000;
-	for (i = 0;i < 1008; i++) {
-		crc += *((uint32 *)(RAM_OFFSET_MAP[0x400] + 0x4000040 + i));
+	for (i = 0; i < 1008; i++) {
+		crc += *(uint32 *)(RAM_OFFSET_MAP[0x400] + 0x4000040 + i);
 	}
 	switch (crc) {
 	case 0x98f85f89:
@@ -166,30 +166,31 @@ void main_cpu_loop(struct rom *rom,struct module_info* mods)
 		apply_patches();
 	}
 
-	while(lerror==0)
-	{
-
+	while (lerror == 0) {
 #if 0
-		if(!op)
-	 	 {
+		if (!op) {
 #ifdef DEBUG
-		 printf("0x%.8x: <0x%.8x>        NOP\n",reg.pc,op);
+			printf("0x%.8x: <0x%.8x>        NOP\n", reg.pc, op);
 #endif
-   	         switch (CPUdelay)
- 	          {
-        	    case 0 :    reg.pc += cpu_step; break;
-	            case 1 :    reg.pc += cpu_step; CPUdelay = 2; break;
-	            default:    reg.pc = reg.CPUdelayPC; reg.CPUdelay = 0; break;
-	          }
-		   continue;  // skip nops.. might speed things up
-		 }
+			switch (CPUdelay) {
+			case  0:
+				reg.pc += cpu_step;
+				break;
+			case  1:
+				reg.pc += cpu_step;
+				CPUdelay = 2;
+				break;
+			default:
+				reg.pc  = reg.CPUdelayPC;
+				reg.CPUdelay = 0;
+				break;
+			}
+			continue;  // skip nops.. might speed things up
+		}
 #endif
 
-
-
-
-                rpc=reg.pc&0x1fffffff;
-                op=*((uint32 *)(rpc+RAM_OFFSET_MAP[(rpc)>>16]));
+		rpc = reg.pc & 0x1FFFFFFF;
+		op  = *(uint32 *)(rpc + RAM_OFFSET_MAP[(rpc >> 16) & 0xFFFFu]);
 
 #ifdef DEBUG
 	if(debugger.print) {
@@ -263,27 +264,35 @@ void main_cpu_loop(struct rom *rom,struct module_info* mods)
          {
            si_dma_transfer_write();
            othertask&=~OTHER_SI_DMA_WR;
-         }
-	else if (othertask&OTHER_AI)
-	 {
-	   addr2=(*((uint32 *)(AIREGS)))&0x1fffffff;
-           ai_dma_request(AIREGS,addr2+RAM_OFFSET_MAP[addr2>>16]);
-			othertask&=~OTHER_AI;
-	 }
-     }
-
+			} else if (othertask & OTHER_AI) {
+				addr2 = (*((uint32 *)(AIREGS))) & 0x1FFFFFFF;
+				ai_dma_request(
+					AIREGS,
+					addr2 + RAM_OFFSET_MAP[addr2 >> 16]
+				);
+				othertask &= ~OTHER_AI;
+			}
+		}
 
 #ifdef EXCESSIVE_DEBUG
 		debug_do_a_dump();
 #endif
 
-
-// deal with interrupts/exceptions after updating delay so we can really tell if we're in a slot
-
-
-
-//	  vi_display(VIREGS,(uint8*)(*((uint32*)(VIREGS+4))+RAM_OFFSET_MAP[*((uint32*)(VIREGS+4))>>16]));
+/*
+ * Deal with interrupts and exceptions after updating delay so that we can
+ * really tell if we're in a slot.
+ */
+#if 0
+		vi_display(
+			VIREGS,
+			(uint8 *)(
+				*((uint32 *)(VIREGS + 4)) +
+				RAM_OFFSET_MAP[*((uint32 *)(VIREGS + 4)) >> 16]
+			)
+		);
+#endif
 	}
+
 	do_a_dump();
 	printf(
 #if (ULONG_MAX >= 0xFFFFFFFFFFFFFFFF)

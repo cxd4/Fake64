@@ -377,7 +377,9 @@ void debugger_step(void)
 
 				op = *((uint32 *)(
 					offset29 +
-					RAM_OFFSET_MAP[offset29 >> 16]
+					RAM_OFFSET_MAP[
+						(offset29 & 0xFFFF0000ul) >> 16
+					]
 				));
 				printf(
 					"0x%.8x:  <0x%.8x>",
@@ -416,8 +418,8 @@ void debugger_step(void)
 			addr = strtoul(p+1, NULL, 0);
 			printf("Search for %s, Address 0x%x\n", string, addr);
 			ra = (uint32 *)(
-				((addr) & 0x1fffffff) +
-				RAM_OFFSET_MAP[((addr) & 0x1fffffff) >> 16]
+				((addr) & 0x1FFFFFFF) +
+				RAM_OFFSET_MAP[((addr) & 0x1FFFFFFF) >> 16]
 			);
 
 			oldh = signal(11, endsearch);
@@ -436,17 +438,33 @@ void debugger_step(void)
 			if (searching)
 				printf(
 					"Found at 0x%p.\n",
-					ra - (((addr) & 0x1fffffff) + RAM_OFFSET_MAP[((addr) & 0x1fffffff) >> 16]) + addr
+					(void *)ra - (void *)(
+						((addr) & 0x1FFFFFFF) +
+						RAM_OFFSET_MAP[((addr) & 0x1FFFFFFF) >> 16]
+					) + addr
 				);
 			else
 				printf("%s not found.\n", string);
 			signal(11, oldh);
 		} else if (!strncmp(command,"display",strlen(command))) {
-//             addr2=*((uint32 *)(VIREGS))&0x1fffffff;
-//	           oldop=(VIREGS+4) + RAM_OFFSET_MAP[*(VIREGS+4)>>16];
-//             printf("%x %x\n",oldop,oldop); //*((int64 *)(RAM_OFFSET_MAP[(oldop&0x1fffffff)>>16]+(oldop&0x1fffffff))));
-		printf("lies: %x\n", *((uint32*)(VIREGS+4))+RAM_OFFSET_MAP[*((uint32*)(VIREGS+4))>>16]);
-		vi_display(VIREGS,(uint16 *)(*((uint32*)(VIREGS+4))+RAM_OFFSET_MAP[*((uint32*)(VIREGS+4))>>16]));
+#if 0
+		addr2 = *(uint32 *)(VIREGS) & 0x1FFFFFFF;
+		oldop = (VIREGS + 4) + RAM_OFFSET_MAP[*(VIREGS + 4) >> 16];
+		printf("%X %X\n", oldop, oldop);
+	//	*(int64 *)(RAM_OFFSET_MAP[(oldop & 0x1FFFFFFF) >> 16] + (oldop & 0x1FFFFFFF))
+#endif
+		printf(
+			"lies:  %X\n",
+			*((uint32 *)(VIREGS + 4)) +
+				RAM_OFFSET_MAP[(*(uint32 *)(VIREGS + 4) & 0xFFFF0000ul) >> 16]
+		);
+		vi_display(
+			VIREGS,
+			(uint16 *)(
+				*((uint32 *)(VIREGS + 4)) +
+				RAM_OFFSET_MAP[(*(uint32 *)(VIREGS + 4) & 0xFFFF0000ul) >> 16]
+			)
+		);
         }
        else if (!strncmp(command,"rwatch",strlen(command)))
         {
@@ -516,7 +534,11 @@ void debugger_step(void)
 	//				printf("Address 0x%x, Format %c,Number %d\n",addr,*pFormat,Number);
           if (addr)
 					{
-						void *ra=(uint32 *)(((addr)&0x1fffffff)+RAM_OFFSET_MAP[((addr)&0x1fffffff)>>16]);
+						void *ra = (uint32 *)(
+							((addr) & 0x1FFFFFFF) +
+							RAM_OFFSET_MAP[((addr & 0xFFFF0000ul) & 0x1FFFFFFF) >> 16]
+						);
+
 						switch(*pFormat)
 						{
 						case 'b':	

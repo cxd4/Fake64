@@ -157,8 +157,11 @@ void Write_SP_STATUS(int value)
     }
 }
 
-void PI_DMA_Transfer_WR()
-{ uint32 to,from,length;
+void
+PI_DMA_Transfer_WR(void)
+{
+	uint32 to, from, length;
+
   to=*((uint32 *)(PIREGS));
   from=*((uint32 *)(PIREGS+0x04));
   length=*((uint32 *)(PIREGS+0x0C));
@@ -166,43 +169,68 @@ void PI_DMA_Transfer_WR()
   from&=0x1fffffff; //
   printd(D_PI, D_INFO, "PI DMA Transfer: Cart->DRAM: 0x%x bytes from 0x%x to 0x%x at 0x%x\n",length+1,from,to,reg.pc);
 
-	memcpy((void*)(to+RAM_OFFSET_MAP[to>>16]),(void*)(from+RAM_OFFSET_MAP[from>>16]),length+1);
+	memcpy(
+		to   + RAM_OFFSET_MAP[(to   & 0xFFFF0000ul) >> 16],
+		from + RAM_OFFSET_MAP[(from & 0xFFFF0000ul) >> 16],
+		length + 1
+	);
  if (patches_active) {
     apply_patches();
  }
 }
 
-void PI_DMA_Transfer_RD()
-{ uint32 to,from,length;
+void
+PI_DMA_Transfer_RD(void)
+{
+	uint32 to,from,length;
+
   to=*((uint32 *)(PIREGS+0x04)); 
   from=*((uint32 *)(PIREGS));
   length=*((uint32 *)(PIREGS+0x08));
   to&=0x1fffffff;
   from&=0x1fffffff;
   printd(D_PI, D_INFO, "PI DMA Transfer: DRAM->Cart: 0x%x bytes from 0x%x to 0x%x at 0x%x\n",length+1,from,to,reg.pc);
-  memcpy((void*)(to+RAM_OFFSET_MAP[to>>16]),(void*)(from+RAM_OFFSET_MAP[from>>16]),length+1);
+	memcpy(
+		(to   + RAM_OFFSET_MAP[(to   & 0xFFFF0000ul) >> 16]),
+		(from + RAM_OFFSET_MAP[(from & 0xFFFF0000ul) >> 16]),
+		length + 1
+  );
 }               
 
-void SP_DMA_Transfer_WR()
-{ uint32 to,from,length;
+void
+SP_DMA_Transfer_WR(void)
+{
+	uint32 to, from, length;
+
   to=*((uint32 *)(SPREGS+0x04));
   from=*((uint32 *)(SPREGS));
   length=*((uint32 *)(SPREGS+0x0C));
   to&=0x1fffffff;
   from&=0x1fffffff;
   printd(D_RSP, D_INFO, "SP DMA Transfer: SP->RDRAM: 0x%x bytes from 0x%x to 0x%x\n",length+1,from,to);
-  memcpy((void*)(to+RAM_OFFSET_MAP[to>>16]),(void*)(from+RAM_OFFSET_MAP[from>>16]),length+1);
-}       
-        
-void SP_DMA_Transfer_RD()
-{ uint32 to,from,length;
+	memcpy(
+		to   + RAM_OFFSET_MAP[(to   & 0xFFFF0000ul) >> 16],
+		from + RAM_OFFSET_MAP[(from & 0xFFFF0000ul) >> 16],
+		length + 1
+	);
+}
+
+void
+SP_DMA_Transfer_RD(void)
+{
+	uint32 to, from, length;
+
   to=*((uint32 *)(SPREGS));
   from=*((uint32 *)(SPREGS+0x04));
   length=*((uint32 *)(SPREGS+0x08));
   to&=0x1fffffff;
   from&=0x1fffffff;
   printd(D_RSP, D_INFO, "SP DMA Transfer: RDRAM->SP: 0x%x bytes from 0x%x to 0x%x\n",length+1,from,to);
-  memcpy((void*)(to+RAM_OFFSET_MAP[to>>16]),(void*)(from+RAM_OFFSET_MAP[from>>16]),length+1);
+	memcpy(
+		to   + RAM_OFFSET_MAP[(to   & 0xFFFF0000ul) >> 16],
+		from + RAM_OFFSET_MAP[(from & 0xFFFF0000ul) >> 16],
+		length + 1
+	);
 }
 
 void PI_Status(int value)
@@ -217,18 +245,27 @@ void si_dma_transfer_write() {
 	uint32 src;
 	printd(D_SI, D_INFO, "SI DMA Transfer to PIFRAM from 0x%x at 0x%x\n", *((uint32 *)SIREGS),reg.pc);
 	src = *((uint32 *)SIREGS);
-	src&=0x1fffffff;
-	memcpy(PIFMEM+0x07c0, (void*)(src + RAM_OFFSET_MAP[src>>16]), 64);
+	src &= 0x1FFFFFFF;
+	memcpy(
+		PIFMEM + 0x07C0,
+		src + RAM_OFFSET_MAP[(src & 0xFFFF0000ul) >> 16],
+		64
+	);
 	pifram_interrupt();
 }
 
-void si_dma_transfer_read() {
+void si_dma_transfer_read()
+{
 	uint32 dest;
 	pifram_interrupt();
 	printd(D_SI, D_INFO, "SI DMA Transfer to RDRAM at 0x%x at 0x%x\n", *((uint32 *)SIREGS),reg.pc);
 	dest = *((uint32 *)SIREGS);
-        dest&=0x1fffffff;
-	memcpy((void*)(dest+RAM_OFFSET_MAP[dest>>16]), PIFMEM+0x07c0, 64);
+	dest &= 0x1FFFFFFF;
+	memcpy(
+		dest + RAM_OFFSET_MAP[(dest & 0xFFFF0000ul) >> 16],
+		PIFMEM + 0x07C0,
+		64
+	);
 }
 
 void Exception(uint32 type)
@@ -326,11 +363,18 @@ void GenerateInterrupt(uint32 type)
 #endif
 
   MI_INTR_REG_R|=type;
-  if(type==MI_INTR_VI)
-  {
-    vi_display(VIREGS,(uint8*)((*((uint32*)(VIREGS+4))&0x1fffffff)+RAM_OFFSET_MAP[(*((uint32*)(VIREGS+4))&0x1fffffff)>>16]));
-    reg.gpr0[13]&=~0xFF00;
-  }
+	if (type == MI_INTR_VI) {
+		vi_display(
+			VIREGS,
+			(uint8 *)(
+				(*((uint32*)(VIREGS + 4)) & 0x1FFFFFFF) +
+				RAM_OFFSET_MAP[
+					(*(uint32*)(VIREGS + 4) >> 16) & 0x1FFF
+				]
+			)
+		);
+		reg.gpr0[13] &= ~0xFF00;
+	}
   if(MI_INTR_REG_R&MI_INTR_MASK_REG_R)
     COP0_CAUSE|=1<<10; // normal interrupt, use 8+7 for count/compare
 
@@ -338,7 +382,8 @@ void GenerateInterrupt(uint32 type)
 }
 
 int Check_Store(int addr, uint32 value)
-{ uint32 addr2;
+{
+	uint32 addr2;
 
 #if USE_DEBUGGER
   int i;
@@ -354,62 +399,75 @@ int Check_Store(int addr, uint32 value)
   }
  #endif
 
+	if ((addr >= SP_DMEM) && (addr <= SP_IMEM_END)) {
+		return (addr + RAM_OFFSET_MAP[(addr & 0xFFFF0000ul) >> 16]);
+	}
 
-  if ((addr >= SP_DMEM) && (addr <= SP_IMEM_END)) {
-	return (addr+RAM_OFFSET_MAP[addr>>16]);
-  }
-
-  switch(addr)
-    {		
-	case MI_INTR_MASK_REG: Write_MI_IMR(value); break;
-	case MI_MODE_REG: Write_MI_MODE(value); break;
-	case SP_STATUS_REG: Write_SP_STATUS(value); break;
-	case PI_WR_LEN_REG: GenerateInterrupt(PI_INTERRUPT);
-			    othertask|=OTHER_DMA_WR;
- 			    return(addr+RAM_OFFSET_MAP[addr>>16]);
-			    break;
-	case PI_RD_LEN_REG: GenerateInterrupt(PI_INTERRUPT);
-			    othertask|=OTHER_DMA_RD;
-                	    return(addr+RAM_OFFSET_MAP[addr>>16]);
-			    break;
+	switch(addr) {
+	case MI_INTR_MASK_REG:
+		Write_MI_IMR(value);
+		break;
+	case MI_MODE_REG:
+		Write_MI_MODE(value);
+		break;
+	case SP_STATUS_REG:
+		Write_SP_STATUS(value);
+		break;
+	case PI_WR_LEN_REG:
+		GenerateInterrupt(PI_INTERRUPT);
+		othertask |= OTHER_DMA_WR;
+		return (addr + RAM_OFFSET_MAP[(addr & 0xFFFF0000ul) >> 16]);
+		break;
+	case PI_RD_LEN_REG:
+		GenerateInterrupt(PI_INTERRUPT);
+		othertask |= OTHER_DMA_RD;
+		return (addr + RAM_OFFSET_MAP[(addr & 0xFFFF0000ul) >> 16]);
+		break;
 	case PI_STATUS_REG: PI_Status(value); break; //inline this
-	case AI_CONTROL_REG: 
-			    othertask|=OTHER_AI; 
-			    return(addr+RAM_OFFSET_MAP[addr>>16]);
-           		    break;
-        case SP_RD_LEN_REG: othertask|=OTHER_SP_DMA_RD; 
-			    return(addr+RAM_OFFSET_MAP[addr>>16]);
-			    break;
-        case SP_WR_LEN_REG: othertask|=OTHER_SP_DMA_WR; 
-			    return(addr+RAM_OFFSET_MAP[addr>>16]);
-			    break;
-/*                printd(D_CPU, D_DEBUG, "Error: Write: Unimplemented register: 0x%x\n",addr);
-                exit(0);
-                break;*/
-
+	case AI_CONTROL_REG:
+		othertask |= OTHER_AI;
+		return (addr + RAM_OFFSET_MAP[(addr & 0xFFFF0000ul) >> 16]);
+		break;
+	case SP_RD_LEN_REG:
+		othertask |= OTHER_SP_DMA_RD;
+		return (addr + RAM_OFFSET_MAP[(addr & 0xFFFF0000ul) >> 16]);
+		break;
+	case SP_WR_LEN_REG:
+		othertask |= OTHER_SP_DMA_WR;
+		return (addr + RAM_OFFSET_MAP[(addr & 0xFFFF0000ul) >> 16]);
+		break;
+#if 0
+		printd(
+			D_CPU, D_DEBUG
+			"Error:  Write:  Unimplemented register:  0x%08lX\n",
+			(unsigned long)addr
+		);
+		exit(0);
+		break;
+#endif
   	case AI_STATUS_REG:
 		       *((uint32 *)(MIREGS+0xc))&=~MI_INTR_AI;
 	case AI_LEN_REG:
 	case AI_DRAM_ADDR_REG:
 	case AI_DACRATE_REG:
 	case AI_BITRATE_REG:
-				return(addr+RAM_OFFSET_MAP[addr>>16]);
+		return (addr + RAM_OFFSET_MAP[(addr & 0xFFFF0000ul) >> 16]);
            	break;
   	case PIF_MEM_BASE+0x7fc:
 		othertask |= OTHER_PIF;
 		GenerateInterrupt(SI_INTERRUPT);
-                return (addr+RAM_OFFSET_MAP[addr>>16]);
+		return (addr + RAM_OFFSET_MAP[(addr & 0xFFFF0000ul) >> 16]);
 		break;
 	case SI_STATUS_REG:
-		*((uint32 *)(addr+RAM_OFFSET_MAP[addr>>16])) &= 0xffffefff;
+		*(uint32 *)(addr + RAM_OFFSET_MAP[addr >> 16]) &= 0xFFFFEFFFul;
 		break;
 	case SI_PIF_ADDR_RD64B_REG:
 		othertask |= OTHER_SI_DMA_RD;
-                return (addr+RAM_OFFSET_MAP[addr>>16]);
+		return (addr + RAM_OFFSET_MAP[(addr & 0xFFFF0000ul) >> 16]);
 		break;
 	case SI_PIF_ADDR_WR64B_REG:
 		othertask |= OTHER_SI_DMA_WR;
-                return (addr+RAM_OFFSET_MAP[addr>>16]);
+		return (addr + RAM_OFFSET_MAP[(addr & 0xFFFF0000ul) >> 16]);
 		break;
 	case MI_VERSION_REG:
 		printd(D_CPU, D_ERROR, "Error: SW: Write to readonly register\n"); lerror=-1;
@@ -417,23 +475,23 @@ int Check_Store(int addr, uint32 value)
 	case VI_STATUS_REG:
                 CLEAR_INTR(VI_INTERRUPT);
 		vi_status_reg_write(value);
-		return (addr+RAM_OFFSET_MAP[addr>>16]);
+		return (addr + RAM_OFFSET_MAP[(addr & 0xFFFF0000ul) >> 16]);
 		break;
 	case VI_CURRENT_REG:
 		CLEAR_INTR(VI_INTERRUPT);
-		return (addr+RAM_OFFSET_MAP[addr>>16]);
+		return (addr + RAM_OFFSET_MAP[(addr & 0xFFFF0000ul) >> 16]);
 		break;
 	case VI_ORIGIN_REG:
 		vi_origin_reg_write(value);
-                return (addr+RAM_OFFSET_MAP[addr>>16]);
+		return (addr + RAM_OFFSET_MAP[(addr & 0xFFFF0000ul) >> 16]);
 		break;
 	case VI_WIDTH_REG:
 		vi_width_reg_write(value);
-                return (addr+RAM_OFFSET_MAP[addr>>16]);
+		return (addr + RAM_OFFSET_MAP[(addr & 0xFFFF0000ul) >> 16]);
 		break;
 	case VI_INTR_REG:
 		vi_intr_reg_write(value);
-                return (addr+RAM_OFFSET_MAP[addr>>16]);
+		return (addr + RAM_OFFSET_MAP[(addr & 0xFFFF0000ul) >> 16]);
 		break;
 	default:
 #ifdef DEBUG
@@ -452,7 +510,7 @@ int Check_Store(int addr, uint32 value)
 	case PI_CART_ADDR_REG:
 	case SP_PC_REG:
 	case SI_DRAM_ADDR_REG:
-                return(addr+RAM_OFFSET_MAP[addr>>16]);
+		return (addr + RAM_OFFSET_MAP[(addr & 0xFFFF0000ul) >> 16]);
 		break;
     }
   return 0;
@@ -476,9 +534,9 @@ uint32 Check_Load(int addr)
 	}
 #endif
 
-  if ((addr >= SP_DMEM) && (addr <= SP_IMEM_END)) {
-	return (addr+RAM_OFFSET_MAP[addr>>16]);
-  }
+	if ((addr >= SP_DMEM) && (addr <= SP_IMEM_END)) {
+		return (addr + RAM_OFFSET_MAP[(addr & 0xFFFF0000ul) >> 16]);
+	}
 
    switch(addr)
     { 
@@ -531,7 +589,7 @@ case AI_STATUS_REG:
 	case SI_STATUS_REG:
 	case MI_INTR_REG:
 	case MI_INTR_MASK_REG:
-		return(addr+RAM_OFFSET_MAP[addr>>16]);
+		return (addr + RAM_OFFSET_MAP[(addr & 0xFFFF0000ul) >> 16]);
 		break;
     }
   return (uint32)&returnvalue;
