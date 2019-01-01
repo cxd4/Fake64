@@ -24,28 +24,53 @@ extern struct sdebugger debugger;
 
 // leave this on till we got all memory areas implemented
 
-void eCPU_UNIMPLEMENTED(void){
-	fprintf(stderr,"Unimplemented opcode (exec) %d pc:0x%x\n",opcode(op)>>26,reg.pc);
+void eCPU_UNIMPLEMENTED(void)
+{
+	fprintf(
+		stderr,
+		"Unimplemented opcode (exec) %d\nPC:0x%08lX\n",
+		opcode(op) >> 26, (unsigned long)reg.pc
+	);
 	lerror=-1;
 }
 
-void eCPU_SPECIAL_UNIMPLEMENTED(void){
-	fprintf(stderr,"Unimplemented special opcode (exec) %d pc:0x%x\n",special(op),reg.pc);
+void eCPU_SPECIAL_UNIMPLEMENTED(void)
+{
+	fprintf(
+		stderr,
+		"Unimplemented special opcode (exec) %d\nPC:  0x%08lX\n",
+		special(op), (unsigned long)reg.pc
+	);
 	lerror=-2;
 }
 
-void eCPU_REGIMM_UNIMPLEMENTED(void){
-	fprintf(stderr,"Unimplemented regimm opcode (exec) %d pc:0x%x\n",rt(op),reg.pc);
+void eCPU_REGIMM_UNIMPLEMENTED(void)
+{
+	fprintf(
+		stderr,
+		"Unimplemented regimm opcode (exec) %d\nPC:  0x%08lX\n",
+		rt(op), (unsigned long)reg.pc
+	);
 	lerror=-3;
 }
 
-void eCPU_COP0_UNIMPLEMENTED(void) {
-	fprintf(stderr,"Unimplemented COP0 opcode (exec) %d pc:0x%x\n", special(op),reg.pc);
+void eCPU_COP0_UNIMPLEMENTED(void)
+{
+	fprintf(
+		stderr,
+		"Unimplemented COP0 opcode (exec) %d\nPC:  0x%08lX\n",
+		special(op), (unsigned long)reg.pc
+	);
 	lerror=-4;
 }
 
-void eCPU_COP1_UNIMPLEMENTED(void) {
-	fprintf(stderr,"Unimplemented COP1 opcode (exec) %d,%d\n",base(op),special(op));
+void eCPU_COP1_UNIMPLEMENTED(void)
+{
+	fprintf(
+		stderr,
+		"Unimplemented COP1 opcode (exec) %d,%d\n",
+		base(op), special(op)
+	);
 	lerror=-5;
 }
 
@@ -741,12 +766,13 @@ void eCPU_REGIMM_BGEZL(void) {
    reg.pc+=4;
 }
 
-void eCPU_SWL(void) {
- uint32 addr;
- uint32 ltmp;
+void eCPU_SWL(void)
+{
+	uint32 addr;
+	uint32 ltmp;
 
- addr=(reg.gpr[base(op)]+(int16)offset(op)) & 0x1fffffff;
- printf("SWL: addy:0x%x at 0x%x\n",addr,reg.pc);
+	addr = (reg.gpr[base(op)] + (int16)offset(op)) & 0x1fffffff;
+	printf("SWL:  addy 0x%X at 0x%08lX\n", addr, (unsigned long)reg.pc);
  ltmp=*((int32 *)((addr&0x1ffffffc)+RAM_OFFSET_MAP[(addr&0x1ffffffc)>>16]));
  switch(addr&3)
   { case 0:  ltmp =reg.gpr[rt(op)]; break;
@@ -764,11 +790,13 @@ void eCPU_SWL(void) {
    *((uint32 *)(addr+RAM_OFFSET_MAP[addr>>16]))=ltmp; 
 }
 
-void eCPU_SWR(void) {
- uint32 addr; 
- uint32 ltmp;
- addr=(reg.gpr[base(op)]+(int16)offset(op)) & 0x1fffffff;
- printf("SWR: addy:0x%x at 0x%x\n",addr,reg.pc);
+void eCPU_SWR(void)
+{
+	uint32 addr; 
+	uint32 ltmp;
+
+	addr = (reg.gpr[base(op)] + (int16)offset(op)) & 0x1fffffff;
+	printf("SWR:  addy 0x%X at 0x%08lX\n", addr, (unsigned long)reg.pc);
  ltmp=*((int32 *)((addr&0x1ffffffc)+RAM_OFFSET_MAP[(addr&0x1ffffffc)>>16]));
  switch(addr&3)
   { case 3:  ltmp =reg.gpr[rt(op)]; break;

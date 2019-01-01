@@ -16,14 +16,13 @@ void set_patch(uint32 addr, uint32 val) {
 
 }
 
-void do_patch(uint32 addr, uint32 val) {
-
+void do_patch(uint32 addr, uint32 val)
+{
 	uint32* ptr;
 
 	ptr = translate_addr(addr & 0x1fffffff);
-	printf("%x:%x\n", addr, ptr);
+	printf("%x:  %p\n", addr, ptr);
 	*ptr = val;
-
 }
 
 void apply_patches() {

@@ -175,7 +175,11 @@ void init_memory(int romlength)
   RAM_OFFSET_MAP[0x0800]=(int)C2A2-0x08000000;
   RAM_OFFSET_MAP[0x0801]=(int)C2A2-0x08010000;
   RAM_OFFSET_MAP[0x1fc0]=(int)PIFMEM-0x1fc00000;
-  printf("%x:%x\n", PIFMEM, RAM_OFFSET_MAP[0x1fc0]+0x1fc00000);
+	printf(
+		"%p:  %X\n",
+		PIFMEM,
+		RAM_OFFSET_MAP[0x1FC0] + 0x1FC00000
+	);
   RAM_OFFSET_MAP[0x1fd0]=(int)C1A3-0x1fd00000;
 
 }

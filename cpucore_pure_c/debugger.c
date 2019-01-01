@@ -1,3 +1,5 @@
+#include <limits.h>
+
 #include <general.h>
 #include <module.h>
 #include <romheader.h>
@@ -95,14 +97,25 @@ void debugger_step(void)
       if (lastpc[i]==reg.pc)
          break;
 
-    if (i==lastpccount || i==0 || i==-1)
-    {
-      fprintf(flogpc,"0x%lx\t",reg.pc);
-			disfd=flogpc;
- 	    dcpu_instr[opcode(op)>>26]();
-			disfd=stdout;
- 			lastpc[lastpccount++]=reg.pc;
-    }
+		if (i == lastpccount || i == 0 || i == -1) {
+			fprintf(
+				flogpc,
+#if (ULONG_MAX >= 0xFFFFFFFFFFFFFFFF)
+				"0x%016lX\t",
+				reg.pc
+#else
+				"0x%08lX%08lX\t",
+				(unsigned long)
+					(((uint64)reg.pc >> 32) & 0xFFFFFFFFul),
+				(unsigned long)
+					(((uint64)reg.pc >>  0) & 0xFFFFFFFFul)
+#endif
+			);
+			disfd = flogpc;
+			dcpu_instr[opcode(op) >> 26]();
+			disfd = stdout;
+			lastpc[lastpccount++] = reg.pc;
+		}
     if (lastpccount>=LOG_LAST_INST)
     {
       printf("WARNING logpc ran out of instrs\n");
@@ -110,22 +123,23 @@ void debugger_step(void)
     }
   }
 
-	// check for breakpoints
-  i=0;
-  while(i<breakpointcount)
-  {
-		if(breakpoints[i].line==(uint32)reg.pc)
-      {
-        breakpoints[i].count--;
-				if (breakpoints[i].count<1)
-				{
-        	debugger.run=0;
-        	printf("Breakpoint %d: 0x%x\n",i+1,reg.pc&0xFFFFFFFF);
-        	breakpoints[i].count=1;
-        }
-      }
-    i++;
-  }
+	/* Check for breakpoints. */
+	i = 0;
+	while (i < breakpointcount) {
+		if (breakpoints[i].line == (uint32)reg.pc) {
+			breakpoints[i].count--;
+			if (breakpoints[i].count<1) {
+				debugger.run = 0;
+				printf(
+					"Breakpoint %d:  0x%08lX\n",
+					i + 1,
+					(unsigned long)(reg.pc & 0xFFFFFFFF)
+				);
+				breakpoints[i].count=1;
+			}
+		}
+		i++;
+	}
 
   if (watchreg != -1) {
      if (reg.gpr[watchreg] != oldwatch) {
@@ -139,83 +153,131 @@ void debugger_step(void)
   if (debugger.run) return;
   printf("(Debugger) ");
   fflush(stdout);
-  while(fgets(buffer,99,stdin))
-    { buffer[strlen(buffer)-1]='\0';
-      if(!strlen(buffer))
-        strcpy(buffer,lastcommand);
-      else
-        strcpy(lastcommand,buffer);
-      for(i=0;buffer[i]&&(buffer[i]!=0x20);i++)
-        command[i]=buffer[i];
-      command[i]='\0';
-      strcpy(buffer,lastcommand);
+	while (fgets(buffer, 99, stdin)) {
+		buffer[strlen(buffer) - 1] = '\0';
+		if (!strlen(buffer))
+			strcpy(buffer, lastcommand);
+		else
+			strcpy(lastcommand,buffer);
+		for (i = 0; buffer[i] && (buffer[i] != 0x20); i++)
+			command[i] = buffer[i];
+		command[i] = '\0';
+		strcpy(buffer, lastcommand);
 
-      if(!strncmp(command,"run",strlen(command)))
-        { debugger.run=1; return; }
-      else if (!strncmp(command,"print",strlen(command)))
-        { debugger.print=1; return; }
-      else if (!strncmp(command,"next",strlen(command)))
-        return;
-      else if (!strncmp(command,"noprint",strlen(command)))
-        { debugger.print=0; return; }
-
-        else if (!strncmp(command,"btpc",strlen(command)))
-        { int i=0;
-          for (i=0;i<100;i++)
-          {
-              addr=btpc[(i+ibtpc)%100];
-              op=*((uint32 *)(((addr)&0x1fffffff)+RAM_OFFSET_MAP[((addr)&0x1fffffff)>>16]));
-              printf("0x%.8x: <0x%.8x>",(uint32)addr,op,addr);
-              dcpu_instr[opcode(op)>>26]();
-          }
-        }
-   else if (!strncmp(command,"clearbreakpoints",strlen(command)))
-	breakpointcount=0;
-   else if (!strncmp(command,"delete",strlen(command)))
-        {
-         int bp=strtoul(buffer+strlen(command)+1,&sp,0);
- 		     breakpoints[bp].count=0;
+		if (!strncmp(command, "run", strlen(command))) {
+			debugger.run = 1;
+			return;
+		} else if (!strncmp(command, "print", strlen(command))) {
+			debugger.print = 1;
+			return;
+		} else if (!strncmp(command, "next", strlen(command))) {
+			return;
+		} else if (!strncmp(command, "noprint", strlen(command))) {
+			debugger.print = 0;
+			return;
+		} else if (!strncmp(command, "btpc", strlen(command))) {
+			int i = 0;
+			for (i = 0; i < 100; i++) {
+				addr = btpc[(i + ibtpc) % 100];
+				op = *((uint32 *)(
+					((addr) & 0x1fffffff) +
+					RAM_OFFSET_MAP[(addr >> 16) & 0x1FFF])
+				);
+				printf("0x%.8x:  <0x%.8x>", (uint32)addr, op);
+				dcpu_instr[opcode(op) >> 26]();
+			}
+		} else if (!strncmp(command, "clearbreakpoints", strlen(command))) {
+			breakpointcount=0;
+		} else if (!strncmp(command, "delete", strlen(command))) {
+			int bp = strtoul(buffer + strlen(command) + 1, &sp, 0);
+ 			breakpoints[bp].count=0;
+		} else if (!strncmp(command, "breakpoint", strlen(command))) {
+			if (!strtoul(buffer + strlen(command) + 1, &sp, 16)) {
+				printf(
+					"Invalid address:  %s.\n",
+					buffer + strlen(command) + 1
+				);
+			} else {
+				breakpoints[breakpointcount].line =
+					strtoul(
+						buffer + strlen(command) + 1,
+						NULL,
+						16
+					);
+				breakpoints[breakpointcount].count =
+					strtoul(sp, NULL, 0);
+				printf(
+					"Breaking on %x, on a count of %d.\n",
+					breakpoints[breakpointcount].line,
+					breakpoints[breakpointcount].count
+				);
+				breakpointcount += 1;
+			}
+		} else if (!strncmp(command, "watch", strlen(command))) {
+			int tempreg;
+			if (
+				(tempreg = strtoul(
+					buffer + strlen(command) + 1, NULL, 10
+				)) ||
+				!strncmp(buffer + strlen(command) + 1, "0", 2)
+			) {
+				if (tempreg > -1 && tempreg < 33) {
+					watchreg = tempreg;
+					oldwatch = reg.gpr[watchreg];
+					printf(
+						"Watching $%s\n",
+						reg_names[watchreg]
+					);
+				} else {
+					printf("No such register!\n");
 				}
- 			else if (!strncmp(command,"breakpoint",strlen(command)))
-        {
-          if(!strtoul(buffer+strlen(command)+1,&sp,16))
-           { printf("Invalid address: %s.\n",buffer+strlen(command)+1); }
-          else
-            {
-            	breakpoints[breakpointcount].line=strtoul(buffer+strlen(command)+1,NULL,16);
-              breakpoints[breakpointcount].count=strtoul(sp,NULL,0);
-	            printf("breaking on %x, on a count of %d\n",breakpoints[breakpointcount].line,breakpoints[breakpointcount].count);
-              breakpointcount+=1;
-            }
-        }
-      else if (!strncmp(command,"watch",strlen(command)))
-	{
-	  int tempreg;
-	  if((tempreg = strtoul(buffer+strlen(command)+1,NULL,10)) || !strncmp(buffer+strlen(command)+1,"0",2)) {
-	     if (tempreg > -1 && tempreg < 33) {
-		watchreg=tempreg;
-		oldwatch=reg.gpr[watchreg];
-		printf("Watching $%s\n", reg_names[watchreg]);
-	     } else {
-		printf("No such register!\n");
-	     }
-	  } else {
-		printf("Specify a register number!\n");
-	  }
-	}
-      else if (!strncmp(command,"show",strlen(command)))
-        {
-          if(!strtoul(buffer+strlen(command)+1,NULL,16))
-            { printf("Invalid address: %s.\n",buffer+strlen(command)+1); }
-          else
-           {  i=strtoul(buffer+strlen(command)+1,NULL,16);
-              printf("0x%x (0x%x+0x%x=0x%x): 0x%x\n",i,(i&0x1fffffff),RAM_OFFSET_MAP[(i&0x1fffffff)>>16],RAM_OFFSET_MAP[(i&0x1fffffff)>>16]+(i&0x1fffffff),*((int64 *)(RAM_OFFSET_MAP[(i&0x1fffffff)>>16]+(i&0x1fffffff))));
-           }
-        }
-      else if (!strncmp(command,"dumpregs",strlen(command)))
-         do_a_dump();
-      else if (!strncmp(command,"help",strlen(command)))
-        {
+			} else {
+				printf("Specify a register number!\n");
+			}
+		} else if (!strncmp(command, "show", strlen(command))) {
+			if (!strtoul(buffer + strlen(command) + 1, NULL, 16)) {
+				printf(
+					"Invalid address:  %s.\n",
+					buffer + strlen(command) + 1
+				);
+			} else {
+				uint64 block;
+				uint32 offset29, map_offset;
+
+				i = strtoul(
+					buffer + strlen(command) + 1,
+					NULL,
+					16
+				);
+				offset29 = i & 0x1FFFFFFF;
+				map_offset = (offset29 >> 16) & 0x00001FFF;
+				block = *(uint64 *)(
+					RAM_OFFSET_MAP[map_offset] + offset29
+				);
+				printf(
+#if (ULONG_MAX >= 0xFFFFFFFFFFFFFFFF)
+					"0x%X (0x%X + 0x%X = 0x%X):  0x%lX\n",
+#else
+					"0x%X (0x%X + 0x%X = 0x%X):  "\
+					"0x%08lX%08lX\n",
+#endif
+					i,
+					offset29,
+					RAM_OFFSET_MAP[map_offset],
+					RAM_OFFSET_MAP[map_offset] + offset29,
+#if (ULONG_MAX >= 0xFFFFFFFFFFFFFFFF)
+					block
+#else
+					(unsigned long)
+						((block >> 32) & 0xFFFFFFFFul),
+					(unsigned long)
+						((block >>  0) & 0xFFFFFFFFul)
+#endif
+				);
+			}
+		} else if (!strncmp(command, "dumpregs", strlen(command))) {
+			do_a_dump();
+		} else if (!strncmp(command, "help", strlen(command))) {
            printf("\nCommands:\n run\n next\n breakpoint address [count]\n show address\n dumpregs\n help\n quit\n disassemble [address] [lines]");
 	         printf("\n print\n noprint\n\n");
         }
@@ -307,79 +369,79 @@ void debugger_step(void)
             if (!j)
               j=10;
 
-            if (addr==0)
-            	addr=(reg.pc&0x1fffffff);
-            for (i=0;i<j;i++)
-            {
-              op=*((uint32 *)(((addr+(i*4))&0x1fffffff)+RAM_OFFSET_MAP[((addr+(i*4))&0x1fffffff)>>16]));
-              printf("0x%.8x: <0x%.8x>",(uint32)addr+(i*4),op,addr);
-        	    dcpu_instr[opcode(op)>>26]();
-            }
-            op=oldop; // maybe needed
-        }
-      else if (!strncmp(command,"logpc",strlen(command)))
-			{
-        logpc=1;
-      	flogpc=fopen("log.pc","w");
-        printf("logging pc\n");
-       }
-       else if (!strncmp(command,"nologpc",strlen(command)))
-       {
-        logpc=0;
-        fclose(flogpc);
-       }
-   else if (!strncmp(command,"search",strlen(command))) // search "string" | number
-   {
-     char *ra;
-			char *string;		// what to search for
-      sighandler_t oldh;
-			char *p=buffer+strlen(command)+1;
-			
-			searching=1;	
-			while(*p==' ')
-				p++;				// skip spaces
-			
-			if (*p=='"')
-			{
-      	++p;	
-        string=p;
-				while(*p++!='"')
-					;	
-					*(p-1)=0;		// end " -> \0
+			if (addr == 0)
+				addr = (reg.pc & 0x1fffffff);
+			for (i = 0; i < j; i++) {
+				const uint32 offset   = addr + 4*i;
+				const uint32 offset29 = offset & 0x1FFFFFFF;
 
-				
+				op = *((uint32 *)(
+					offset29 +
+					RAM_OFFSET_MAP[offset29 >> 16]
+				));
+				printf(
+					"0x%.8x:  <0x%.8x>",
+					offset, op
+				);
+				dcpu_instr[opcode(op) >> 26]();
+			}
+			op = oldop; /* maybe needed */
+		} else if (!strncmp(command, "logpc", strlen(command))) {
+			logpc=1;
+			flogpc=fopen("log.pc","w");
+			printf("logging pc\n");
+		} else if (!strncmp(command,"nologpc",strlen(command))) {
+			logpc=0;
+			fclose(flogpc);
+		} else if (!strncmp(command, "search", strlen(command))) {
+			/* search "string" | number */
+			char *ra;
+			char *string = NULL; /* what to search for */
+			sighandler_t oldh;
+			char *p = buffer + strlen(command) + 1;
 
+			searching = 1;
+			while (*p == ' ')
+				p++; /* skip spaces. */
+			if (*p == '"') {
+				++p;
+				string = p;
+				while (*p++ != '"')
+					;
+				*(p - 1) = 0; /* end " -> \0 */
 			}
 			else
 				printf("only searches for strings atm\n");			
 
-			addr=strtoul(p+1,NULL,0);
-			printf("Search for %s, Address 0x%x\n",string,addr);
-      ra=(uint32 *)(((addr)&0x1fffffff)+RAM_OFFSET_MAP[((addr)&0x1fffffff)>>16]);
-			
-			oldh=signal(11,endsearch);
-      while (strncmp(ra,string,strlen(string)) )
-			{
-	    printf("doggy\n");
-			ra++;
-	if (!searching)
-		break;
-	//	printf("There are %x fishes in the sea\n",searching);
-}
-      if (searching)
-				printf("Found at 0x%x\n",ra-(((addr)&0x1fffffff)+RAM_OFFSET_MAP[((addr)&0x1fffffff)>>16])+addr);
-      else
-				printf("%s not found\n",string);
-			signal(11,oldh);
+			addr = strtoul(p+1, NULL, 0);
+			printf("Search for %s, Address 0x%x\n", string, addr);
+			ra = (uint32 *)(
+				((addr) & 0x1fffffff) +
+				RAM_OFFSET_MAP[((addr) & 0x1fffffff) >> 16]
+			);
 
-	 }
-
-
-
-
-
- else if (!strncmp(command,"display",strlen(command)))
-   		{
+			oldh = signal(11, endsearch);
+			while (strncmp(ra, string, strlen(string))) {
+				printf("doggy\n");
+				ra++;
+				if (!searching)
+					break;
+#if 0
+				printf(
+					"There are %x fishes in the sea.\n",
+					searching
+				);
+#endif
+			}
+			if (searching)
+				printf(
+					"Found at 0x%p.\n",
+					ra - (((addr) & 0x1fffffff) + RAM_OFFSET_MAP[((addr) & 0x1fffffff) >> 16]) + addr
+				);
+			else
+				printf("%s not found.\n", string);
+			signal(11, oldh);
+		} else if (!strncmp(command,"display",strlen(command))) {
 //             addr2=*((uint32 *)(VIREGS))&0x1fffffff;
 //	           oldop=(VIREGS+4) + RAM_OFFSET_MAP[*(VIREGS+4)>>16];
 //             printf("%x %x\n",oldop,oldop); //*((int64 *)(RAM_OFFSET_MAP[(oldop&0x1fffffff)>>16]+(oldop&0x1fffffff))));

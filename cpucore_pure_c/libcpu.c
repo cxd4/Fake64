@@ -1,4 +1,6 @@
 #include <signal.h>
+#include <limits.h>
+
 #include <general.h>
 #include <romheader.h>
 #include <decode.h>
@@ -61,11 +63,11 @@ void debugger_step(void);
 
 void main_cpu_loop(struct rom *rom,struct module_info* mods)
 {
-	uint32 i=0,crc=0;
 #ifdef DEBUG
 	int disasmcount=0;
 #endif
 	uint32 addr2;
+	uint32 i, crc;
 
 	currentrom = rom;
 	alloc_memory(rom);
@@ -137,15 +139,12 @@ void main_cpu_loop(struct rom *rom,struct module_info* mods)
 	reg.gpr0[9] = 0;
 	lerror=0;
 
-
-// do crc of boot code and set CIC accordinly
-	crc=0;
-	for (i=0;i<1008;i++)
-	{
-		crc+=*((uint32*)(RAM_OFFSET_MAP[0x400]+0x4000040+i));
-	}			
-  switch(crc)
-	{
+	/* Do CRC of boot code, and set CIC accordinly. */
+	crc = 0x00000000;
+	for (i = 0;i < 1008; i++) {
+		crc += *((uint32 *)(RAM_OFFSET_MAP[0x400] + 0x4000040 + i));
+	}
+	switch (crc) {
 	case 0x98f85f89:
 		reg.gpr[0x16] = 0x3f;
   		break;
@@ -159,7 +158,7 @@ void main_cpu_loop(struct rom *rom,struct module_info* mods)
 		reg.gpr[0x16] = 0x85;
   		break;
 	default:
-		printf("Unknown bootloader crc 0x%lx\n",crc);
+		printf("Unknown bootloader crc 0x%08X\n", crc);
 		break;
 	}
 
@@ -286,11 +285,31 @@ void main_cpu_loop(struct rom *rom,struct module_info* mods)
 //	  vi_display(VIREGS,(uint8*)(*((uint32*)(VIREGS+4))+RAM_OFFSET_MAP[*((uint32*)(VIREGS+4))>>16]));
 	}
 	do_a_dump();
-	printf("execution ended at 0x%x\n",reg.pc);
+	printf(
+#if (ULONG_MAX >= 0xFFFFFFFFFFFFFFFF)
+		"Execution ended at 0x%016lX.\n", reg.pc
+#else
+		"Execution ended at 0x%08lX%08lX.\n",
+		(unsigned long)((uint64)reg.pc >> 32) & 0xFFFFFFFFul,
+		(unsigned long)reg.pc & 0xFFFFFFFFul
+#endif
+	);
 	printf("Last opcode: "); fflush(stdout);
         dcpu_instr[opcode(op)>>26]();
         fflush(stdout);	
-	printf("%i instructions executed\n", reg.gpr0[9]);
+
+#if (ULONG_MAX >= 0xFFFFFFFFFFFFFFFF)
+	printf("%li instructions executed.\n", reg.gpr0[9]);
+#else
+	if (reg.gpr0[9] > 0x00000000FFFFFFFFul)
+		printf(
+			"%li*2e32 + %li instructions executed.\n",
+			(long int)((reg.gpr0[9] >> 32) & 0xFFFFFFFF),
+			(long int)(reg.gpr0[9] & 0xFFFFFFFF)
+		);
+	else
+		printf("%li instructions executed.\n", (long)reg.gpr0[9]);
+#endif
 #ifdef DEBUG
         printf("%i instructions disassembled\n",disasmcount);
 #endif
