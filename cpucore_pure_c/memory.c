@@ -22,7 +22,7 @@ uint8 *C1A1     = NULL;   // Cartridge Domain 1 Address 1 32kb sram
 uint8 *C1A3     = NULL;   // Cartridge Domain 1 Address 3 32kb sram
 uint8 *ROM	= NULL;   // rom(header&everythin)
 
-int RAM_OFFSET_MAP[0x2000];
+void* RAM_OFFSET_MAP[(0x1FFFFFFF + 1) >> 16];
 
 int alloc_memory(struct rom *rom)
 {
@@ -146,46 +146,72 @@ int alloc_memory(struct rom *rom)
 }
 
 void init_memory(int romlength)
-{ int i;
-  for(i=0;i<0x2000;i++)
-   RAM_OFFSET_MAP[i]=0;
+{
+	int i;
 
-  for(i=0;i<=(RAM_SIZE>>16);i++)
-   RAM_OFFSET_MAP[i]=(int)RDRAM; 
-  
-  for(i=0x1000;i<=(romlength+0x10000000)>>16;i++)   
-   RAM_OFFSET_MAP[i]=(int)ROM-0x10000000;
+	for (i = 0; i < sizeof(RAM_OFFSET_MAP) / sizeof(void*); i++)
+		RAM_OFFSET_MAP[i] = NULL;
 
-  for(i=0x03f0;i<=0x03ff;i++)
-   RAM_OFFSET_MAP[i]=(int)RDREGS-0x03f00000;
+	for (i = 0x00000000; i <= RAM_SIZE; i += 0x00010000)
+		RAM_OFFSET_MAP[i >> 16] = RDRAM;
 
-  RAM_OFFSET_MAP[0x0400]=(int)SPDIMEM-0x04000000;
-  RAM_OFFSET_MAP[0x0404]=(int)SPREGS-0x04040000;
-  RAM_OFFSET_MAP[0x0408]=(int)SP_REG-0x04080000;
-  RAM_OFFSET_MAP[0x0410]=(int)DPREGS-0x04100000;
-  RAM_OFFSET_MAP[0x0420]=(int)DPSREGS-0x04200000;
-  RAM_OFFSET_MAP[0x0430]=(int)MIREGS-0x04300000;
-  RAM_OFFSET_MAP[0x0440]=(int)VIREGS-0x04400000;
-  RAM_OFFSET_MAP[0x0450]=(int)AIREGS-0x04500000;
-  RAM_OFFSET_MAP[0x0460]=(int)PIREGS-0x04600000;
-  RAM_OFFSET_MAP[0x0470]=(int)RIREGS-0x04700000;
-  RAM_OFFSET_MAP[0x0480]=(int)SIREGS-0x04800000;
-  RAM_OFFSET_MAP[0x0500]=(int)C2A1-0x05000000;
-  RAM_OFFSET_MAP[0x0600]=(int)C1A1-0x06000000;
-  RAM_OFFSET_MAP[0x0800]=(int)C2A2-0x08000000;
-  RAM_OFFSET_MAP[0x0801]=(int)C2A2-0x08010000;
-  RAM_OFFSET_MAP[0x1fc0]=(int)PIFMEM-0x1fc00000;
+	if (romlength >= 64 * 1024 * 1024) {
+		printf(
+			"Warning:  Clamping romlength %i to 512 Mib.\n",
+			romlength
+		);
+		romlength = 512/8 * 1024 * 1024;
+	}
+	for (i = 0x1000; i <= (romlength + 0x10000000) >> 16; i++)
+		RAM_OFFSET_MAP[i] = ROM - 0x10000000;
+
+	for (i = 0x03F0; i <= 0x03FF; i++)
+		RAM_OFFSET_MAP[i] = RDREGS - 0x03F00000;
+
+	RAM_OFFSET_MAP[0x0400] = SPDIMEM - 0x04000000;
+	RAM_OFFSET_MAP[0x0404] = SPREGS  - 0x04040000;
+	RAM_OFFSET_MAP[0x0408] = SP_REG  - 0x04080000;
+	RAM_OFFSET_MAP[0x0410] = DPREGS  - 0x04100000;
+	RAM_OFFSET_MAP[0x0420] = DPSREGS - 0x04200000;
+	RAM_OFFSET_MAP[0x0430] = MIREGS  - 0x04300000;
+	RAM_OFFSET_MAP[0x0440] = VIREGS  - 0x04400000;
+	RAM_OFFSET_MAP[0x0450] = AIREGS  - 0x04500000;
+	RAM_OFFSET_MAP[0x0460] = PIREGS  - 0x04600000;
+	RAM_OFFSET_MAP[0x0470] = RIREGS  - 0x04700000;
+	RAM_OFFSET_MAP[0x0480] = SIREGS  - 0x04800000;
+	RAM_OFFSET_MAP[0x0500] = C2A1    - 0x05000000;
+	RAM_OFFSET_MAP[0x0600] = C1A1    - 0x06000000;
+	RAM_OFFSET_MAP[0x0800] = C2A2    - 0x08000000;
+	RAM_OFFSET_MAP[0x0801] = C2A2    - 0x08010000;
+	RAM_OFFSET_MAP[0x1FC0] = PIFMEM  - 0x1FC00000;
+
 	printf(
-		"%p:  %X\n",
+		"%p:  %p\n",
 		PIFMEM,
 		RAM_OFFSET_MAP[0x1FC0] + 0x1FC00000
 	);
-  RAM_OFFSET_MAP[0x1fd0]=(int)C1A3-0x1fd00000;
-
+	RAM_OFFSET_MAP[0x1FD0] = C1A3 - 0x1FD00000;
 }
 
-void* translate_addr(uint32 addr) {
+void* translate_addr(uint32 addr)
+{
+	void* translated_address = NULL;
+	const uint16 segment_index = (uint16)((addr & 0xFFFF0000ul) >> 16);
 
-	return (void*)(addr + RAM_OFFSET_MAP[addr>>16]);
-
+	if (segment_index >= sizeof(RAM_OFFSET_MAP) / sizeof(void*)) {
+		fprintf(
+			stderr,
+			"Address 0x%08lX exceeds RCP bounds!\n",
+			(unsigned long)addr
+		);
+		return (translated_address);
+	}
+	translated_address = RAM_OFFSET_MAP[segment_index] + addr;
+	if (translated_address - addr == 0) {
+		printf(
+			"Warning:  RAM_OFFSET_MAP[0x%04X] is NULL.",
+			segment_index
+		);
+	}
+	return (translated_address);
 }

@@ -160,20 +160,25 @@ void eCPU_COP1_NEGD(void)
 
 
 // sign extend or not ?
-void eCPU_LWC1(void) {
- uint32 addr;
- addr=(uint32)((reg.gpr[base(op)]+(int16)offset(op)) & 0x1fffffff);
+void eCPU_LWC1(void)
+{
+	uint32 addr;
+
+	addr = (uint32)((reg.gpr[base(op)] + (int16)offset(op)) & 0x1FFFFFFFul);
 #ifdef DEBUG
- if(!RAM_OFFSET_MAP[addr>>16])
- { printf("LWC1: Unimplemented memory area. addy: 0x%x\n",addr);
-     lerror=-2;
-     return;
-  }
+	if (RAM_OFFSET_MAP[(addr & 0xFFFF0000ul) >> 16] == NULL) {
+		printf(
+			"LWC1:  Unimplemented memory area.  addr:  0x%08lX\n",
+			(unsigned long)addr
+		);
+		lerror = -2;
+		return;
+	}
 #endif
- if(addr&0x04000000)
-   reg.gpr1[rt(op)]= *((int32 *)(Check_Load(addr)));
- else // patch... 1964 doesn't seem to sign extend them mmmh yah it does
- reg.gpr1[rt(op)]=*((int32 *)(addr+RAM_OFFSET_MAP[addr>>16]));
+	if (addr & 0x04000000)
+		reg.gpr1[rt(op)] = *(int32 *)Check_Load(addr);
+	else /* 1964 doesn't seem to sign extend them mmmh yah it does. */
+		reg.gpr1[rt(op)] = *(int32 *)(addr + RAM_OFFSET_MAP[addr >> 16]);
 }
 
 
@@ -419,7 +424,8 @@ void eCPU_COP1_BC(void)
 
 
 // fixed this 26/12/2001 think others prob broken too
-void eCPU_LDC1(void) {
+void eCPU_LDC1(void)
+{
  union {
     uint32 bit32[2];
     uint64 bit64; 
@@ -428,54 +434,68 @@ void eCPU_LDC1(void) {
  addr=(reg.gpr[base(op)]+(int16)offset(op)) & 0x1fffffff;
 
 #ifdef DEBUG
- if(!RAM_OFFSET_MAP[addr>>16])
-  { printf("LD: Unimplemented memory area. addy: 0x%x\n",addr);
-     lerror=-2;
-     return;
-  }
+	if (RAM_OFFSET_MAP[(addr & 0xFFFF0000ul) >> 16] == NULL) {
+		printf(
+			"LD:  Unimplemented memory area.  addr:  0x%08lX\n",
+			(unsigned long)addr
+		);
+		lerror = -2;
+		return;
+	}
 #endif
 
- if(addr&0x04000000)
-   { switch(addr)
-      {
-        default: printf("LD:Unimplemented interrupt\n"); break;
-      }
-   }
- else
-  {
-    temp.bit64= *((uint64 *)(addr+RAM_OFFSET_MAP[addr>>16]));
-    *((int32*)&reg.gpr1[rt(op)])=temp.bit32[1];//           ((uint64)temp.bit32[0])<<32|((uint64)temp.bit32[1]);
-    *((int32*)(&reg.gpr1[rt(op)])+1)=temp.bit32[0];
-  }
+	if (addr & 0x04000000) {
+		switch (addr) {
+		default:
+			printf("LD:  Unimplemented interrupt\n");
+			break;
+		}
+	} else {
+		puts("Seriously?  This probably segfaults.");
+		temp.bit64 = *(uint64 *)(addr + RAM_OFFSET_MAP[addr >> 16]);
+		*((int32*)&reg.gpr1[rt(op)] + 0) = temp.bit32[1]; // ((uint64)temp.bit32[0] << 32) | (uint64)temp.bit32[1];
+		*((int32*)&reg.gpr1[rt(op)] + 1) = temp.bit32[0];
+	}
 }
 
-void eCPU_SWC1(void) {
- uint32 addr;
- addr=(reg.gpr[base(op)]+(int16)offset(op)) & 0x1fffffff;
+void eCPU_SWC1(void)
+{
+	uint32 addr;
+
+	addr = (reg.gpr[base(op)] + (int16)offset(op)) & 0x1FFFFFFF;
 #ifdef DEBUG
-  if(!RAM_OFFSET_MAP[addr>>16])
-  { printf("SWC1: Unimplemented memory area. addy: 0x%x\n",addr);
-    lerror=-2;
-    return;
-  }
+	if (RAM_OFFSET_MAP[(addr & 0xFFFF0000ul) >> 16] == NULL) {
+		printf(
+			"SWC1:  Unimplemented memory area.  addr:  0x%08lX\n",
+			(unsigned long)addr
+		);
+		lerror = -2;
+		return;
+	}
 #endif
-  if(addr&0x04000000)
-    { addr=Check_Store(addr,reg.gpr1[rt(op)]);
-      if (addr) *((uint32 *)addr)=reg.gpr1[rt(op)];
-    }
- else
-   *((uint32 *)(addr+RAM_OFFSET_MAP[addr>>16]))=reg.gpr1[rt(op)];
+	if (addr & 0x04000000) {
+		addr = Check_Store(addr, reg.gpr1[rt(op)]);
+		if (addr)
+			*(uint32 *)addr = reg.gpr1[rt(op)];
+	} else {
+		*(uint32 *)(addr + RAM_OFFSET_MAP[addr >> 16]) = reg.gpr1[rt(op)];
+	}
 }
 
-void eCPU_SDC1(void) {
- uint32 addr;
+void eCPU_SDC1(void)
+{
+	uint32 addr;
+
  addr=(reg.gpr[base(op)]+(int16)offset(op)) & 0x1fffffff;
 #ifdef DEBUG
-  if(!RAM_OFFSET_MAP[addr>>16])
-  { printf("SWC1: Unimplemented memory area. addy: 0x%x\n",addr);
-    lerror=-2;
-    return;
-  }
+	if (RAM_OFFSET_MAP[(addr & 0xFFFF0000ul) >> 16] == NULL) {
+		printf(
+			"SWC1:  Unimplemented memory area.  addr:  0x%08lX\n",
+			(unsigned long)addr
+		);
+		lerror = -2;
+		return;
+	}
 #endif
   if(addr&0x04000000)
     { addr=Check_Store(addr,reg.gpr1[rt(op)]);
@@ -485,4 +505,3 @@ void eCPU_SDC1(void) {
  else
    *((uint64*)(addr+RAM_OFFSET_MAP[addr>>16]))=*((uint64*)&reg.gpr1[rt(op)]);
 }
-

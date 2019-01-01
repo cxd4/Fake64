@@ -273,53 +273,68 @@ void eCPU_BLEZL(void) {
 }
 
  // ??
-void eCPU_SH(void) {
- uint32 addr;
+void eCPU_SH(void)
+{
+	uint32 addr;
 
  // ok... i'm just following N64OPS#H.TXT here...
  addr=(reg.gpr[base(op)]+(int16)offset(op)) & 0x1fffffff;
  addr^=2;                                                           // ??
- // are switch()'s inefficient? -- YES (but these ifs below are even worse)
+
 #ifdef DEBUG
-  if(!RAM_OFFSET_MAP[addr>>16])
-  { printf("SH: Unimplemented memory area. addy: 0x%x\n",addr);
-    lerror=-2;
-    return;
-  }
+	if (RAM_OFFSET_MAP[(addr & 0xFFFF0000ul) >> 16] == NULL) {
+		printf(
+			"SH:  Unimplemented memory area.  addr:  0x%08lX\n",
+			(unsigned long)addr
+		);
+		lerror = -2;
+		return;
+	}
 #endif
- 
- if(addr&0x04000000) 
-   { switch(addr)
-      {
-	default: printf("SH:Unimplemented register: 0x%x\n",addr); lerror=-2; return;
-      }
-   }
- else
-   *((uint16 *)(addr+RAM_OFFSET_MAP[addr>>16]))=reg.gpr[rt(op)];
+
+	if (addr & 0x04000000) {
+		switch (addr) {
+		default:
+			printf(
+				"SH:  Unimplemented register:  0x%08lX\n",
+				(unsigned long)addr
+			);
+			lerror = -2;
+			return;
+		}
+	} else {
+		*(uint16 *)(addr + RAM_OFFSET_MAP[(addr >> 16) & 0xFFFFu]) =
+			reg.gpr[rt(op)];
+	}
 }
 
 
 
 
 
-void eCPU_LHU(void) {
- uint32 addr;
+void eCPU_LHU(void)
+{
+	uint32 addr;
+
  addr=(reg.gpr[base(op)]+(int16)offset(op)) & 0x1fffffff;
  addr^=2;
 #ifdef DEBUG
- if(!RAM_OFFSET_MAP[addr>>16])
-  { printf("LHU: Unimplemented memory area. addy: 0x%x\n",addr);
-     lerror=-2;
-     return;
-  }
+	if (RAM_OFFSET_MAP[(addr & 0xFFFF0000ul) >> 16] == NULL) {
+		printf(
+			"LHU:  Unimplemented memory area.  addr:  0x%08lX\n",
+			(unsigned long)addr
+		);
+		lerror = -2;
+		return;
+	}
 #endif
- if(addr&0x04000000)
-   { 
-   reg.gpr[rt(op)]= *((uint16 *)(Check_Load(addr)));
-
-   }
- else
-   reg.gpr[rt(op)]=*((uint16 *)(addr+RAM_OFFSET_MAP[addr>>16]));
+	if (addr & 0x04000000) {
+		reg.gpr[rt(op)] = *(uint16 *)Check_Load(addr);
+	} else {
+		reg.gpr[rt(op)] = *(uint16 *)(
+			addr + RAM_OFFSET_MAP[(addr & 0xFFFF0000ul) >> 16]
+		);
+	}
 }
 
 void eCPU_SB(void) {
@@ -328,36 +343,42 @@ void eCPU_SB(void) {
  addr=(reg.gpr[base(op)]+(int16)offset(op)) & 0x1fffffff;
  addr^=3;
 #ifdef DEBUG
-  if(!RAM_OFFSET_MAP[addr>>16])
-  { printf("SW: Unimplemented memory area. addy: 0x%x\n",addr);
-    lerror=-2;
-    return;
-  }
+	if (RAM_OFFSET_MAP[(addr & 0xFFFF0000ul) >> 16] == NULL) {
+		printf(
+			"SW:  Unimplemented memory area.  addy:  0x%08lX\n",
+			(unsigned long)addr
+		);
+		lerror=-2;
+		return;
+	}
 #endif
- if(addr&0x04000000) 
-   {  addr=Check_Store(addr,reg.gpr[rt(op)]);
-      if (addr) *((uint8 *)addr)=reg.gpr[rt(op)];
-   }
- else
-   *((uint8 *)(addr+RAM_OFFSET_MAP[addr>>16]))=reg.gpr[rt(op)];
+	if (addr & 0x04000000) {
+		addr = Check_Store(addr, reg.gpr[rt(op)]);
+		if (addr)
+			*(uint8 *)addr = reg.gpr[rt(op)];
+	} else {
+		*(uint8 *)(addr + RAM_OFFSET_MAP[addr >> 16]) = reg.gpr[rt(op)];
+	}
 }
 
-void eCPU_LBU(void) {
+void eCPU_LBU(void)
+{
 	uint32 addr;
+
 	// I'm copying you
 	addr=(reg.gpr[base(op)]+(int16)offset(op)) & 0x1fffffff;
 	addr^=3;
 #ifdef DEBUG
-	if(!RAM_OFFSET_MAP[addr>>16]) {
+	if (RAM_OFFSET_MAP[(addr & 0xFFFF0000ul) >> 16] == NULL) {
 		printf("LBU: Unimplemented memory area. addy: 0x%x\n", addr);
 		lerror = -2;
 		return;
 	}
 #endif
-	if(addr&0x04000000) {
-	     reg.gpr[rt(op)]= *((uint8 *)(Check_Load(addr)));
+	if (addr & 0x04000000) {
+		reg.gpr[rt(op)]= *((uint8 *)(Check_Load(addr)));
 	} else {
-		reg.gpr[rt(op)] = (uint8)*((uint8 *)(addr+RAM_OFFSET_MAP[addr>>16]));
+		reg.gpr[rt(op)] = *(uint8 *)(addr + RAM_OFFSET_MAP[addr >> 16]);
 	}
 }
 void eCPU_LB(void) {
@@ -366,98 +387,127 @@ void eCPU_LB(void) {
 	addr=(reg.gpr[base(op)]+(int16)offset(op)) & 0x1fffffff;
 	addr^=3;
 #ifdef DEBUG
-	if(!RAM_OFFSET_MAP[addr>>16]) {
-		printf("LB: Unimplemented memory area. addy: 0x%x\n", addr);
+	if (RAM_OFFSET_MAP[(addr & 0xFFFF0000ul) >> 16] == NULL) {
+		printf(
+			"LB:  Unimplemented memory area.  addr:  0x%08lX\n",
+			(unsigned long)addr
+		);
 		lerror = -2;
 		return;
 	}
 #endif
-	if(addr&0x04000000) {
-             reg.gpr[rt(op)]= *((int8 *)(Check_Load(addr)));
+	if (addr & 0x04000000) {
+		reg.gpr[rt(op)] = *(int8 *)Check_Load(addr);
 	} else {
-		reg.gpr[rt(op)] = *((int8 *)(addr+RAM_OFFSET_MAP[addr>>16]));
+		reg.gpr[rt(op)] = *(int8 *)(addr + RAM_OFFSET_MAP[addr >> 16]);
 	}
 }
-void eCPU_SD(void) {
- uint32 addr;
+void eCPU_SD(void)
+{
+	uint32 addr;
 
  // ok... i'm just following N64OPS#H.TXT here...
  addr=(reg.gpr[base(op)]+(int16)offset(op)) & 0x1fffffff;
  // are switch()'s inefficient? -- YES (but these ifs below are even worse)
 #ifdef DEBUG
-  if(!RAM_OFFSET_MAP[addr>>16])
-  { printf("SH: Unimplemented memory area. addy: 0x%x\n",addr);
-    lerror=-2;
-    return;
-  }
+	if (RAM_OFFSET_MAP[(addr & 0xFFFF0000ul) >> 16] == NULL) {
+		printf(
+			"SH:  Unimplemented memory area.  addr:  0x%08lX\n",
+			(unsigned long)addr
+		);
+		lerror = -2;
+		return;
+	}
 #endif
 
- if(addr&0x04000000)
-   { switch(addr)
-      {
-	default: printf("SD:Unimplemented register 0x%x\n",addr); lerror=-2; return;
-      }
-   }
- else
-  {
-   *((uint32 *)(addr+RAM_OFFSET_MAP[addr>>16]))=(reg.gpr[rt(op)])>>32 ; // top word
-   *((uint32 *)(addr+RAM_OFFSET_MAP[addr>>16])+1)=reg.gpr[rt(op)]& 0xFFFFFFFF ; // btm word
-  }
- 
+	if (addr & 0x04000000) {
+		switch (addr) {
+		default:
+			printf(
+				"SD:  Unimplemented register 0x%08lX\n",
+				(unsigned long)addr
+			);
+			lerror = -2;
+			return;
+		}
+	} else {
+		puts("Seriously?  Does this even work?");
+		*(uint32 *)(addr + RAM_OFFSET_MAP[(addr >> 16) & 0xFFFFu] + 0) =
+			(uint32)((reg.gpr[rt(op)] >> 32) & 0xFFFFFFFFul);
+		*(uint32 *)(addr + RAM_OFFSET_MAP[(addr >> 16) & 0xFFFFu] + 1) =
+			(uint32)((reg.gpr[rt(op)] >>  0) & 0xFFFFFFFFul);
+	}
 }
 
-void eCPU_SW(void) {
- uint32 addr;
- // ok... i'm just following N64OPS#H.TXT here...
- addr=(reg.gpr[base(op)]+(int16)offset(op)) & 0x1fffffff;
+void eCPU_SW(void)
+{
+	uint32 addr;
+
+	/* ok... I'm just following N64OPS#H.TXT here... */
+	addr = (reg.gpr[base(op)] + (int16)offset(op)) & 0x1FFFFFFF;
 #ifdef DEBUG
-  if(!RAM_OFFSET_MAP[addr>>16])
-  { printf("SW: Unimplemented memory area. addy: 0x%x\n",addr);
-    lerror=-2;
-    return;
-  }
+	if (RAM_OFFSET_MAP[(addr & 0xFFFF0000ul) >> 16] == NULL) {
+		printf(
+			"SW:  Unimplemented memory area.  addr:  0x%08lX\n",
+			(unsigned long)addr
+		);
+		lerror = -2;
+		return;
+	}
 #endif
- if(addr&0x04000000)
-    { addr=Check_Store(addr,reg.gpr[rt(op)]);
-      if (addr) *((uint32 *)addr)=reg.gpr[rt(op)];
-    }
- else
-   *((uint32 *)(addr+RAM_OFFSET_MAP[addr>>16]))=reg.gpr[rt(op)];
+	if (addr & 0x04000000) {
+		addr = Check_Store(addr, reg.gpr[rt(op)]);
+		if (addr)
+			*(uint32 *)addr = reg.gpr[rt(op)];
+	} else {
+		*(uint32 *)(addr + RAM_OFFSET_MAP[(addr >> 16) & 0xFFFFu]) =
+			reg.gpr[rt(op)];
+	}
 }
 
 
-void eCPU_LW(void) {
- uint32 addr;
- addr=(reg.gpr[base(op)]+(int16)offset(op)) & 0x1fffffff;
+void eCPU_LW(void)
+{
+	uint32 addr;
+
+	addr = (reg.gpr[base(op)] + (int16)offset(op)) & 0x1FFFFFFF;
 #ifdef DEBUG
- if(!RAM_OFFSET_MAP[addr>>16])
- { printf("LW: Unimplemented memory area. addy: 0x%x\n",addr);
-   reg.gpr[rt(op)]=0;
-//     lerror=-2;
-     return;
-  }
+	if (RAM_OFFSET_MAP[(addr & 0xFFFF0000ul) >> 16] = NULL) {
+		printf(
+			"LW:  Unimplemented memory area.  addr:  0x%08lX\n",
+			(unsigned long)addr
+		);
+		reg.gpr[rt(op)] = 0;
+		/* lerror = -2; */
+		return;
+	}
 #endif
- if(addr&0x04000000)
-   reg.gpr[rt(op)]= *((int32 *)(Check_Load(addr)));
- else // patch... 1964 doesn't seem to sign extend them mmmh yah it does
- reg.gpr[rt(op)]=*((int32 *)(addr+RAM_OFFSET_MAP[addr>>16]));
+	if (addr & 0x04000000)
+		reg.gpr[rt(op)] = *(int32 *)Check_Load(addr);
+	else /* 1964 doesn't seem to sign extend them mmmh yah it does. */
+		reg.gpr[rt(op)] = *(int32 *)(addr + RAM_OFFSET_MAP[addr >> 16]);
 }
 
-void eCPU_LH(void) {
- uint32 addr;
+void eCPU_LH(void)
+{
+	uint32 addr;
+
  addr=(reg.gpr[base(op)]+(int16)offset(op)) & 0x1fffffff;
  addr^=2;
 #ifdef DEBUG
- if(!RAM_OFFSET_MAP[addr>>16])
- { printf("LW: Unimplemented memory area. addy: 0x%x\n",addr);
-     lerror=-2;
-     return;
-  }
+	if (RAM_OFFSET_MAP[addr >> 16] == NULL) {
+		printf(
+			"LW:  Unimplemented memory area.  addr:  0x%08lX\n",
+			(unsigned long)addr
+		);
+		lerror = -2;
+		return;
+	}
 #endif
- if(addr&0x04000000)
-   reg.gpr[rt(op)]=*((int16 *)(Check_Load(addr)));
- else // patch... 1964 doesn't seem to sign extend them mmmh yah it does
- reg.gpr[rt(op)]=*((int16 *)(addr+RAM_OFFSET_MAP[addr>>16]));
+	if (addr & 0x04000000)
+		reg.gpr[rt(op)] = *(int16 *)(Check_Load(addr));
+	else /* 1964 doesn't seem to sign extend them mmmh yah it does. */
+		reg.gpr[rt(op)] = *(int16 *)(addr + RAM_OFFSET_MAP[addr >> 16]);
 }
 
 // 4/12 CORRECT
@@ -540,7 +590,8 @@ void eCPU_SPECIAL_AND(void) {
  reg.gpr[rd(op)]=reg.gpr[rs(op)]&reg.gpr[rt(op)];
 }
 
-void eCPU_LD(void) {
+void eCPU_LD(void)
+{
  union {
     uint32 bit32[2];
     uint64 bit64;
@@ -549,23 +600,32 @@ void eCPU_LD(void) {
  addr=(reg.gpr[base(op)]+(int16)offset(op)) & 0x1fffffff;
 
 #ifdef DEBUG
- if(!RAM_OFFSET_MAP[addr>>16])
-  { printf("LD: Unimplemented memory area. addy: 0x%x\n",addr);
-     lerror=-2;
-     return;
-  }
+	if (RAM_OFFSET_MAP[addr >> 16] == NULL) {
+		printf(
+			"LD:  Unimplemented memory area.  addr:  0x%08lX\n",
+			(unsigned long)addr
+		);
+		lerror = -2;
+		return;
+	}
 #endif
 
- if(addr&0x04000000)
-   { switch(addr)
-      {
-        default: printf("LD:Unimplemented register 0x%x\n",addr); lerror=-2; break;
-      }
-   }
- else
-  { temp.bit64= *((uint64 *)(addr+RAM_OFFSET_MAP[addr>>16]));
-    reg.gpr[rt(op)]=((uint64)temp.bit32[0])<<32|((uint64)temp.bit32[1]);
-  }
+	if (addr & 0x04000000) {
+		switch (addr) {
+		default:
+			printf(
+				"LD:  Unimplemented register 0x%08lX\n",
+				(unsigned long)addr
+			);
+			lerror = -2;
+			break;
+		}
+	} else {
+		temp.bit64 = *(uint64 *)(addr + RAM_OFFSET_MAP[addr >> 16]);
+		reg.gpr[rt(op)] =
+			((uint64)temp.bit32[0] << 32) |
+			((uint64)temp.bit32[1] <<  0);
+	}
 }
 
 // 9/11
@@ -773,7 +833,10 @@ void eCPU_SWL(void)
 
 	addr = (reg.gpr[base(op)] + (int16)offset(op)) & 0x1fffffff;
 	printf("SWL:  addy 0x%X at 0x%08lX\n", addr, (unsigned long)reg.pc);
- ltmp=*((int32 *)((addr&0x1ffffffc)+RAM_OFFSET_MAP[(addr&0x1ffffffc)>>16]));
+	ltmp = *(int32 *)(
+		(addr & 0x1FFFFFFC) +
+		RAM_OFFSET_MAP[(addr & 0x1FFFFFFC & 0xFFFF0000ul) >> 16]
+	);
  switch(addr&3)
   { case 0:  ltmp =reg.gpr[rt(op)]; break;
     case 1:  ltmp = ((uint32)reg.gpr[rt(op)]>>8)|(ltmp&0xff000000); break;
@@ -781,23 +844,27 @@ void eCPU_SWL(void)
     default: ltmp = ((uint32)reg.gpr[rt(op)]>>24)|(ltmp&0xffffff00); break;
   }
 
- addr&=0x1ffffffc;
- if(addr&0x04000000)
-    { addr=Check_Store(addr,ltmp);
-      if (addr) *((uint32 *)addr)=ltmp;
-    }
- else
-   *((uint32 *)(addr+RAM_OFFSET_MAP[addr>>16]))=ltmp; 
+	addr &= 0x1FFFFFFC;
+	if (addr & 0x04000000) {
+		addr = Check_Store(addr, ltmp);
+		if (addr)
+			*(uint32 *)addr = ltmp;
+	} else {
+		*(uint32 *)(addr + RAM_OFFSET_MAP[addr >> 16]) = ltmp;
+	}
 }
 
 void eCPU_SWR(void)
 {
-	uint32 addr; 
+	uint32 addr;
 	uint32 ltmp;
 
 	addr = (reg.gpr[base(op)] + (int16)offset(op)) & 0x1fffffff;
 	printf("SWR:  addy 0x%X at 0x%08lX\n", addr, (unsigned long)reg.pc);
- ltmp=*((int32 *)((addr&0x1ffffffc)+RAM_OFFSET_MAP[(addr&0x1ffffffc)>>16]));
+	ltmp = *(int32 *)(
+		(addr & 0x1FFFFFFC) +
+		RAM_OFFSET_MAP[(addr & 0x1FFFFFFC) >> 16]
+	);
  switch(addr&3)
   { case 3:  ltmp =reg.gpr[rt(op)]; break;
     case 2:  ltmp = ((uint32)reg.gpr[rt(op)]<<8)|(ltmp&0x000000ff); break;
@@ -805,32 +872,40 @@ void eCPU_SWR(void)
     default: ltmp = ((uint32)reg.gpr[rt(op)]<<24)|(ltmp&0x00ffffff); break;
   }
 
- addr&=0x1ffffffc;
- if(addr&0x04000000)
-    { addr=Check_Store(addr,ltmp);
-      if (addr) *((uint32 *)addr)=ltmp;
-    }
- else
-   *((uint32 *)(addr+RAM_OFFSET_MAP[addr>>16]))=ltmp;
+	addr &= 0x1FFFFFFC;
+	if (addr & 0x04000000) {
+		addr = Check_Store(addr, ltmp);
+		if (addr)
+			*(uint32 *)addr = ltmp;
+	} else {
+		*(uint32 *)(addr + RAM_OFFSET_MAP[addr >> 16]) = ltmp;
+	}
 }
 
-void eCPU_LWL(void) {
- uint32 addr;
- uint32 taddr;
+void eCPU_LWL(void)
+{
+	uint32 addr;
+	uint32 taddr;
 
 addr=(reg.gpr[base(op)]+(int16)offset(op)) & 0x1fffffff;
 //printf("LWL: addy:0x%x at 0x%x\n",addr,reg.pc);
 #ifdef DEBUG
- if(!RAM_OFFSET_MAP[addr>>16])
- { printf("LW: Unimplemented memory area. addy: 0x%x\n",addr);
-     lerror=-2;
-     return;
-  }
+	if (RAM_OFFSET_MAP[addr >> 16] = NULL) {
+		printf(
+			"LW:  Unimplemented memory area.  addr:  0x%08lX\n",
+			(unsigned long)addr
+		);
+		lerror = -2;
+		return;
+	}
 #endif
-if(addr&0x04000000)
-   taddr= *((int32 *)(Check_Load(addr&0x1ffffffc)));
- else // patch... 1964 doesn't seem to sign extend them mmmh yah it does
-   taddr=*((int32 *)((addr&0x1ffffffc)+RAM_OFFSET_MAP[(addr&0x1ffffffc)>>16]));
+	if (addr & 0x04000000)
+		taddr = *(int32 *)(Check_Load(addr & 0x1FFFFFFC));
+	else /* 1964 doesn't seem to sign extend them mmmh yah it does. */
+		taddr = *(int32 *)(
+			(addr & 0x1FFFFFFC) +
+			RAM_OFFSET_MAP[(addr & 0x1FFFFFFC & 0xFFFF0000ul) >> 16]
+		);
 
   switch (addr & 3)
   {
@@ -850,25 +925,32 @@ if(addr&0x04000000)
 }
 
 
-void eCPU_LWR(void) {
- uint32 addr;
- uint32 taddr;
+void eCPU_LWR(void)
+{
+	uint32 addr;
+	uint32 taddr;
 
 addr=(reg.gpr[base(op)]+(int16)offset(op)) & 0x1fffffff;
 
 //printf("lWR: addy:0x%x at 0x%x\n",addr,reg.pc);
 #ifdef DEBUG
- if(!RAM_OFFSET_MAP[addr>>16])
- { printf("LW: Unimplemented memory area. addy: 0x%x\n",addr);
-     lerror=-2;
-     return;
-  }
+	if (RAM_OFFSET_MAP[addr >> 16] = NULL) {
+		printf(
+			"LW:  Unimplemented memory area.  addr:  0x%08lX\n",
+			(unsigned long)addr
+		);
+		lerror = -2;
+		return;
+	}
 #endif
 
-if(addr&0x04000000)
-   taddr= *((int32 *)(Check_Load(addr&0x1ffffffc)));
- else // patch... 1964 doesn't seem to sign extend them mmmh yah it does
-   taddr=*((int32 *)((addr&0x1ffffffc)+RAM_OFFSET_MAP[(addr&0x1ffffffc)>>16]));
+	if (addr & 0x04000000)
+		taddr = *(int32 *)(Check_Load(addr & 0x1FFFFFFC));
+	else /* 1964 doesn't seem to sign extend them mmmh yah it does. */
+		taddr = *(int32 *)(
+			(addr & 0x1FFFFFFC) +
+			RAM_OFFSET_MAP[(addr & 0x1FFFFFFC & 0xFFFF0000ul) >> 16]
+		);
 
   switch (addr & 3)
   {
