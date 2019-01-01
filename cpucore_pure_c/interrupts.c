@@ -378,7 +378,8 @@ void GenerateInterrupt(uint32 type)
   PossibleInterrupt=1;
 }
 
-int Check_Store(int addr, uint32 value)
+void*
+Check_Store(int addr, uint32 value)
 {
 	uint32 addr2;
 
@@ -495,13 +496,14 @@ int Check_Store(int addr, uint32 value)
 	case SI_DRAM_ADDR_REG:
 		return (RAM_OFFSET_MAP[(addr & 0xFFFF0000ul) >> 16] + addr);
     }
-  return 0;
+	return NULL;
 }
 
-uint32 Check_Load(int addr)
-{ static uint32 returnvalue;
-  static int test=0xFF;
-
+void*
+Check_Load(int addr)
+{
+	static uint32 returnvalue;
+	static int test=0xFF;
 
 #if USE_DEBUGGER
   int i;
@@ -573,6 +575,5 @@ case AI_STATUS_REG:
 	case MI_INTR_MASK_REG:
 		return (RAM_OFFSET_MAP[(addr & 0xFFFF0000ul) >> 16] + addr);
     }
-  return (uint32)&returnvalue;
+	return &(returnvalue);
 }
-

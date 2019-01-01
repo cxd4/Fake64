@@ -324,9 +324,9 @@ void GenerateInterrupt(uint32 type)
   PossibleInterrupt=1;
 }
 
-int Check_Store(int addr, uint32 value)
+void*
+Check_Store(int addr, uint32 value)
 { 
-
 #if USE_DEBUGGER
   int i;
 //  printf("Death by Bannannas\n");
@@ -442,13 +442,14 @@ int Check_Store(int addr, uint32 value)
                 return(addr+RAM_OFFSET_MAP[addr>>16]);
 		break;
     }
-  return 0;
+	return NULL;
 }
 
-uint32 Check_Load(int addr)
-{ static uint32 returnvalue;
-  static int test=0xFF;
-
+void*
+Check_Load(int addr)
+{
+	static uint32 returnvalue;
+	static int test=0xFF;
 
 #if USE_DEBUGGER
   int i;
@@ -530,6 +531,6 @@ case AI_STATUS_REG:
 		return(addr+RAM_OFFSET_MAP[addr>>16]);
 		break;
     }
-  return (uint32)&returnvalue;
+	return &(returnvalue);
 }
 
