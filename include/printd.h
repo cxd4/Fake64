@@ -22,8 +22,12 @@ Use of levels:
 	extern struct module_info *modules;
 #endif
 
-#define printd modules->printd_f
-#define test_debug modules->test_debug_f
+#ifdef STATIC_MODULES
+#define printd		_printd
+#else
+#define printd		modules->printd_f
+#endif
+#define test_debug	modules->test_debug_f
 
 typedef enum {
 	D_DEBUG,
