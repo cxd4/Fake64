@@ -6,6 +6,32 @@
 #error Cannot allocate this much RDRAM with the RCP memory model.
 #endif
 
+/*
+ * Unless the pre-processor receives instructions to inaccurately emulate the
+ * byte order for speed purposes, we'll store Nintendo 64 DRAM accurately.
+ * This can actually be faster in some cases than aliasing 32-bit writes in
+ * client-native endian, anyway.
+ */
+#ifndef CLIENT_ENDIAN
+#define SERVER_ENDIAN
+#endif
+
+#ifdef CLIENT_ENDIAN
+#define BYTE_ADDRESS_SWAP       3
+/* should stay 7 for 64-bit little-endian, 3 for 32-bit, etc. */
+#else
+#define BYTE_ADDRESS_SWAP       0
+#endif
+#define HALFWORD_ADDRESS_SWAP   ((BYTE_ADDRESS_SWAP) / 2)
+#define WORD_ADDRESS_SWAP       ((BYTE_ADDRESS_SWAP) / 4)
+#define DOUBLEWORD_ADDRESS_SWAP ((BYTE_ADDRESS_SWAP) / 8)
+
+#define BES(x)  ((x) ^ ((BYTE_ADDRESS_SWAP) & ~0))
+#define HES(x)  ((x) ^ ((BYTE_ADDRESS_SWAP) & ~1))
+#define WES(x)  ((x) ^ ((BYTE_ADDRESS_SWAP) & ~3))
+#define DES(x)  ((x) ^ ((BYTE_ADDRESS_SWAP) & ~7))
+
+
 #define DRAM_BASE_REG	0x03F00000
 #define SP_DMEM		0x04000000
 #define SP_DMEM_END	0x04000FFF

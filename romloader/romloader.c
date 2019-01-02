@@ -65,25 +65,6 @@ void dfree(void *t)
 	free(t);
 }
 
-void fix_rom_name(char *name)
-{ int k;
-  char swap[5];
-       for(k=20;k>=0;k-=4) {
-         //Converts 0x12408037 to 0x80371240
-         // 0x37 0x80 0x40 0x12 to 0x40 0x12 0x37 0x80
-         // <opcode> <src> <dest>
-           swap[0]=name[k];
-           swap[1]=name[k+1];
-           swap[2]=name[k+2];
-           swap[3]=name[k+3];
-
-           name[k]=swap[3]; // godddd this needs checking
-           name[k+1]=swap[2];
-           name[k+2]=swap[1];
-           name[k+3]=swap[0];
-        }
-}
-
 struct rom *
 load_n64_rom(char* filename)
 {
@@ -137,6 +118,7 @@ load_n64_rom(char* filename)
 	romstruct->bootcode = rom + 0x40;
 	romstruct->progcode = rom + 0x1000;
 	byteswap(romstruct->length, romstruct->image);
+
 	memcpy(
 		romstruct,
 		rom,
@@ -144,20 +126,41 @@ load_n64_rom(char* filename)
 			4*sizeof(uint8 *) /* image/header/bootcode/progcode */
 		-	sizeof(int) /* length */
 	);
-
-	fix_rom_name(romstruct->name);
 	return (romstruct);
 }
 
 void dumpheader(struct rom *rom)
 {
-  printf("PI_BSB_DOM1_LAT_REG: 0x%x (should be 0x80)\nPI_BSB_DOM1_PGS_REG: 0x%x (should be 0x37)\nPI_BSB_DOM1_PWD_REG: 0x%x (should be 0x12)\nPI_BSB_DOM1_PGS_REG2: 0x%x (should be 0x40)\n",rom->PI_BSB_DOM1_LAT_REG,rom->PI_BSB_DOM1_PGS_REG,rom->PI_BSB_DOM1_PWD_REG,rom->PI_BSB_DOM1_PGS_REG2);
-  printf("Clockrate: %d\nPC: 0x%x\nRelease: %d\nCRC1: 0x%x\nCRC2: 0x%x\n",rom->clockrate,rom->PC,rom->release,rom->CRC1,rom->CRC2);
+	printf(
+		"PI_BSB_DOM1_LAT_REG:  0x%x (should be 0x80)\n"\
+		"PI_BSB_DOM1_PGS_REG:  0x%x (should be 0x37)\n"\
+		"PI_BSB_DOM1_PWD_REG:  0x%x (should be 0x12)\n"\
+		"PI_BSB_DOM1_PGS_REG2:  0x%x (should be 0x40)\n",
+	
+		rom->PI_BSB_DOM1_LAT_REG,
+		rom->PI_BSB_DOM1_PGS_REG,
+		rom->PI_BSB_DOM1_PWD_REG,
+		rom->PI_BSB_DOM1_PGS_REG2
+	);
+	printf(
+		"Clockrate:  %d\n"\
+		"PC:  0x%x\n"\
+		"Release:  %d\n"\
+		"CRC1:  0x%x\n"\
+		"CRC2:  0x%x\n",
 
-  printf("Name: %s\nManufacturer: 0x%x ",rom->name,rom->manufacturer);
-  if (rom->manufacturer==0x4e)
-    printf("(Nintendo)");
-    printf("\n");
+		rom->clockrate,
+		rom->PC,
+		rom->release,
+		rom->CRC1,
+		rom->CRC2
+	);
+
+	printf("Manufacturer: 0x%x ", rom->manufacturer);
+	if (rom->manufacturer==0x4e)
+		puts(" (Nintendo)");
+	else
+		putchar('\n');
 
   printf("Cartridge ID: 0x%x\nCountry Code: 0x%x ",rom->cardridge_id,rom->country_code);
   switch(rom->country_code)

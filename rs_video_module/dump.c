@@ -109,11 +109,6 @@ void old_rcp_command(OSTask* task) {
 
 	printd(D_RCP, D_DEBUG, "Data contains %i commands\n", num);
 
-/*	for (i = 0; i < num; i++) {
-		printd(D_RCP, D_DEBUG, "Command %i: %.2x %.2x %.2x %.2x - %.2x %.2x %.2x %.2x\n", i, data[(i*8)+3], data[(i*8)+2], data[(i*8)+1], data[(i*8)], data[(i*8)+7], data[(i*8)+6], data[(i*8)+5], data[(i*8)+4]);
-		disassemble_command(data);
-	}*/
-
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 //	glClear(GL_DEPTH_BUFFER_BIT);
 
@@ -138,14 +133,19 @@ void do_displaylist(uint8* data, int depth) {
 		cmd.b64 = *(uint64*)cptr;
 		if (test_debug(D_RCP, D_DEBUG)) {
 			for (j = 0; j < depth; j++) { putchar(' '); }
-			printd(D_RCP, D_DEBUG, "Command %i: %.2x %.2x %.2x %.2x - %.2x %.2x %.2x %.2x\n", i, cmd.b8[3], cmd.b8[2], cmd.b8[1], cmd.b8[0], cmd.b8[7], cmd.b8[6], cmd.b8[5], cmd.b8[4]);
+			printd(
+				D_RCP, D_DEBUG,
+				"Command %i:  %.2x %.2x %.2x %.2x - %.2x %.2x %.2x %.2x\n",
+				i,
+				cmd.b8[BES(0)], cmd.b8[BES(1)], cmd.b8[BES(2)], cmd.b8[BES(3)],
+				cmd.b8[BES(4)], cmd.b8[BES(5)], cmd.b8[BES(6)], cmd.b8[BES(7)]
+			);
 			for (j = 0; j < depth; j++) { putchar(' '); }
 			disassemble_command(cmd, depth);
 		}
 		exec_command(cmd, depth);
 		i++;
 	}
-
 }
 
 void disassemble_command(rdp_command cmd, int depth) {

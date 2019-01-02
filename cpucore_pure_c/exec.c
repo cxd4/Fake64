@@ -272,14 +272,13 @@ void eCPU_BLEZL(void) {
           reg.pc+=4;
 }
 
- // ??
 void eCPU_SH(void)
 {
 	uint32 addr;
 
  // ok... i'm just following N64OPS#H.TXT here...
  addr=(reg.gpr[base(op)]+(int16)offset(op)) & 0x1fffffff;
- addr^=2;                                                           // ??
+	addr = HES(addr);
 
 #ifdef DEBUG
 	if (RAM_OFFSET_MAP[(addr & 0xFFFF0000ul) >> 16] == NULL) {
@@ -303,8 +302,16 @@ void eCPU_SH(void)
 			return;
 		}
 	} else {
-		*(uint16 *)(addr + RAM_OFFSET_MAP[(addr >> 16) & 0xFFFFu]) =
-			reg.gpr[rt(op)];
+		void* address;
+		const uint16 halfword = (uint16)(reg.gpr[rt(op)] & 0xFFFFu);
+
+		address = RAM_OFFSET_MAP[(addr & 0xFFFF0000ul) >> 16] + addr;
+#ifdef CLIENT_ENDIAN
+		*(uint16 *)(address) = halfword;
+#else
+		*(uint8 *)(address + 0) = (halfword >> 8) & 0xFF;
+		*(uint8 *)(address + 1) = (halfword >> 0) & 0xFF;
+#endif
 	}
 }
 
@@ -317,7 +324,7 @@ void eCPU_LHU(void)
 	uint32 addr;
 
  addr=(reg.gpr[base(op)]+(int16)offset(op)) & 0x1fffffff;
- addr^=2;
+	addr = HES(addr);
 #ifdef DEBUG
 	if (RAM_OFFSET_MAP[(addr & 0xFFFF0000ul) >> 16] == NULL) {
 		printf(
@@ -328,6 +335,8 @@ void eCPU_LHU(void)
 		return;
 	}
 #endif
+
+#ifdef CLIENT_ENDIAN
 	if (addr & 0x04000000) {
 		reg.gpr[rt(op)] = *(uint16 *)Check_Load(addr);
 	} else {
@@ -335,30 +344,40 @@ void eCPU_LHU(void)
 			addr + RAM_OFFSET_MAP[(addr & 0xFFFF0000ul) >> 16]
 		);
 	}
+#else
+	puts("LHU");
+#endif
 }
 
-void eCPU_SB(void) {
- uint32 addr;
+void eCPU_SB(void)
+{
+	void* address;
+	uint32 addr;
+
  // ok... i'm just following N64OPS#H.TXT here...
  addr=(reg.gpr[base(op)]+(int16)offset(op)) & 0x1fffffff;
- addr^=3;
+	addr = BES(addr);
+
 #ifdef DEBUG
 	if (RAM_OFFSET_MAP[(addr & 0xFFFF0000ul) >> 16] == NULL) {
 		printf(
-			"SW:  Unimplemented memory area.  addy:  0x%08lX\n",
+			"SB:  Unimplemented memory area.  addy:  0x%08lX\n",
 			(unsigned long)addr
 		);
-		lerror=-2;
+		lerror = -2;
 		return;
 	}
 #endif
+
 	if (addr & 0x04000000) {
-		addr = Check_Store(addr, reg.gpr[rt(op)]);
-		if (addr)
-			*(uint8 *)addr = reg.gpr[rt(op)];
+		address = Check_Store(addr, reg.gpr[rt(op)]);
 	} else {
-		*(uint8 *)(addr + RAM_OFFSET_MAP[addr >> 16]) = reg.gpr[rt(op)];
+		address = RAM_OFFSET_MAP[(addr & 0xFFFF0000ul) >> 16] + addr;
 	}
+
+	if (address == NULL)
+		return;
+	*(uint8 *)(address) = (uint8)(reg.gpr[rt(op)] & 0xFF);
 }
 
 void eCPU_LBU(void)
@@ -366,8 +385,9 @@ void eCPU_LBU(void)
 	uint32 addr;
 
 	// I'm copying you
+	// no u
 	addr=(reg.gpr[base(op)]+(int16)offset(op)) & 0x1fffffff;
-	addr^=3;
+	addr = BES(addr);
 #ifdef DEBUG
 	if (RAM_OFFSET_MAP[(addr & 0xFFFF0000ul) >> 16] == NULL) {
 		printf("LBU: Unimplemented memory area. addy: 0x%x\n", addr);
@@ -376,16 +396,20 @@ void eCPU_LBU(void)
 	}
 #endif
 	if (addr & 0x04000000) {
-		reg.gpr[rt(op)]= *((uint8 *)(Check_Load(addr)));
+		reg.gpr[rt(op)] = *(uint8 *)(Check_Load(addr));
 	} else {
 		reg.gpr[rt(op)] = *(uint8 *)(addr + RAM_OFFSET_MAP[addr >> 16]);
 	}
 }
-void eCPU_LB(void) {
+
+void eCPU_LB(void)
+{
 	uint32 addr;
+
 	// I'm copying you
+	// um, no...u!
 	addr=(reg.gpr[base(op)]+(int16)offset(op)) & 0x1fffffff;
-	addr^=3;
+	addr = BES(addr);
 #ifdef DEBUG
 	if (RAM_OFFSET_MAP[(addr & 0xFFFF0000ul) >> 16] == NULL) {
 		printf(
@@ -402,6 +426,7 @@ void eCPU_LB(void) {
 		reg.gpr[rt(op)] = *(int8 *)(addr + RAM_OFFSET_MAP[addr >> 16]);
 	}
 }
+
 void eCPU_SD(void)
 {
 	uint32 addr;
@@ -431,7 +456,7 @@ void eCPU_SD(void)
 			return;
 		}
 	} else {
-		puts("Seriously?  Does this even work?");
+		puts("wtf?  I doubt this works right.");
 		*(uint32 *)(addr + RAM_OFFSET_MAP[(addr >> 16) & 0xFFFFu] + 0) =
 			(uint32)((reg.gpr[rt(op)] >> 32) & 0xFFFFFFFFul);
 		*(uint32 *)(addr + RAM_OFFSET_MAP[(addr >> 16) & 0xFFFFu] + 1) =
@@ -441,7 +466,8 @@ void eCPU_SD(void)
 
 void eCPU_SW(void)
 {
-	uint32 addr;
+	void* address;
+	uint32 addr, word;
 
 	/* ok... I'm just following N64OPS#H.TXT here... */
 	addr = (reg.gpr[base(op)] + (int16)offset(op)) & 0x1FFFFFFF;
@@ -456,18 +482,28 @@ void eCPU_SW(void)
 	}
 #endif
 	if (addr & 0x04000000) {
-		addr = Check_Store(addr, reg.gpr[rt(op)]);
-		if (addr)
-			*(uint32 *)addr = reg.gpr[rt(op)];
+		address = Check_Store(addr, reg.gpr[rt(op)]);
 	} else {
-		*(uint32 *)(addr + RAM_OFFSET_MAP[(addr >> 16) & 0xFFFFu]) =
-			reg.gpr[rt(op)];
+		address = RAM_OFFSET_MAP[(addr & 0xFFFF0000ul) >> 16] + addr;
 	}
+
+	if (address == NULL)
+		return;
+	word = (uint32)(reg.gpr[rt(op)] & 0x00000000FFFFFFFFul);
+#ifdef CLIENT_ENDIAN
+	*(uint32 *)(address) = word;
+#else
+	*(uint8 *)(address + 0) = (uint8)((word & 0xFF000000ul) >> 24);
+	*(uint8 *)(address + 1) = (uint8)((word & 0x00FF0000ul) >> 16);
+	*(uint8 *)(address + 2) = (uint8)((word & 0x0000FF00ul) >>  8);
+	*(uint8 *)(address + 3) = (uint8)((word & 0x000000FFul) >>  0);
+#endif
 }
 
 
 void eCPU_LW(void)
 {
+	void* address;
 	uint32 addr;
 
 	addr = (reg.gpr[base(op)] + (int16)offset(op)) & 0x1FFFFFFF;
@@ -483,9 +519,20 @@ void eCPU_LW(void)
 	}
 #endif
 	if (addr & 0x04000000)
-		reg.gpr[rt(op)] = *(int32 *)Check_Load(addr);
-	else /* 1964 doesn't seem to sign extend them mmmh yah it does. */
-		reg.gpr[rt(op)] = *(int32 *)(addr + RAM_OFFSET_MAP[addr >> 16]);
+		address = Check_Load(addr);
+	else
+		address = RAM_OFFSET_MAP[(addr & 0xFFFF0000ul) >> 16] + addr;
+
+#ifdef CLIENT_ENDIAN
+	reg.gpr[rt(op)] = *(int32 *)(address);
+#else
+	reg.gpr[rt(op)] = (int32)(
+		((uint32)(uint8 *)(address + 0) << 24) |
+		((uint32)(uint8 *)(address + 1) << 16) |
+		((uint32)(uint8 *)(address + 2) <<  8) |
+		((uint32)(uint8 *)(address + 3) <<  0)
+	);
+#endif
 }
 
 void eCPU_LH(void)
@@ -493,7 +540,7 @@ void eCPU_LH(void)
 	uint32 addr;
 
  addr=(reg.gpr[base(op)]+(int16)offset(op)) & 0x1fffffff;
- addr^=2;
+ 	addr = HES(addr);
 #ifdef DEBUG
 	if (RAM_OFFSET_MAP[addr >> 16] == NULL) {
 		printf(
@@ -504,10 +551,15 @@ void eCPU_LH(void)
 		return;
 	}
 #endif
+
+#ifdef CLIENT_ENDIAN
 	if (addr & 0x04000000)
 		reg.gpr[rt(op)] = *(int16 *)(Check_Load(addr));
 	else /* 1964 doesn't seem to sign extend them mmmh yah it does. */
 		reg.gpr[rt(op)] = *(int16 *)(addr + RAM_OFFSET_MAP[addr >> 16]);
+#else
+	puts("LH");
+#endif
 }
 
 // 4/12 CORRECT
@@ -621,10 +673,14 @@ void eCPU_LD(void)
 			break;
 		}
 	} else {
+#ifdef CLIENT_ENDIAN
 		temp.bit64 = *(uint64 *)(addr + RAM_OFFSET_MAP[addr >> 16]);
 		reg.gpr[rt(op)] =
 			((uint64)temp.bit32[0] << 32) |
 			((uint64)temp.bit32[1] <<  0);
+#else
+		puts("LD");
+#endif
 	}
 }
 
@@ -845,6 +901,7 @@ void eCPU_SWL(void)
   }
 
 	addr &= 0x1FFFFFFC;
+#ifdef CLIENT_ENDIAN
 	if (addr & 0x04000000) {
 		addr = Check_Store(addr, ltmp);
 		if (addr)
@@ -852,6 +909,9 @@ void eCPU_SWL(void)
 	} else {
 		*(uint32 *)(addr + RAM_OFFSET_MAP[addr >> 16]) = ltmp;
 	}
+#else
+	puts("SWL");
+#endif
 }
 
 void eCPU_SWR(void)
@@ -873,6 +933,7 @@ void eCPU_SWR(void)
   }
 
 	addr &= 0x1FFFFFFC;
+#ifdef CLIENT_ENDIAN
 	if (addr & 0x04000000) {
 		addr = Check_Store(addr, ltmp);
 		if (addr)
@@ -880,6 +941,9 @@ void eCPU_SWR(void)
 	} else {
 		*(uint32 *)(addr + RAM_OFFSET_MAP[addr >> 16]) = ltmp;
 	}
+#else
+	puts("SWR");
+#endif
 }
 
 void eCPU_LWL(void)
@@ -899,6 +963,8 @@ addr=(reg.gpr[base(op)]+(int16)offset(op)) & 0x1fffffff;
 		return;
 	}
 #endif
+
+#ifdef CLIENT_ENDIAN
 	if (addr & 0x04000000)
 		taddr = *(int32 *)(Check_Load(addr & 0x1FFFFFFC));
 	else /* 1964 doesn't seem to sign extend them mmmh yah it does. */
@@ -922,6 +988,9 @@ addr=(reg.gpr[base(op)]+(int16)offset(op)) & 0x1fffffff;
 			reg.gpr[rt(op)] = (int32)((reg.gpr[rt(op)] & 0x00ffffff) | (taddr << 24));
       break;
   }
+#else
+	puts("LWL");
+#endif
 }
 
 
@@ -944,6 +1013,7 @@ addr=(reg.gpr[base(op)]+(int16)offset(op)) & 0x1fffffff;
 	}
 #endif
 
+#ifdef CLIENT_ENDIAN
 	if (addr & 0x04000000)
 		taddr = *(int32 *)(Check_Load(addr & 0x1FFFFFFC));
 	else /* 1964 doesn't seem to sign extend them mmmh yah it does. */
@@ -969,6 +1039,9 @@ addr=(reg.gpr[base(op)]+(int16)offset(op)) & 0x1fffffff;
 	default:
 		printf("LWR broken\n");
   }
+#else
+	puts("LWR");
+#endif
 }
 
 void eCPU_STOLEN(void) {

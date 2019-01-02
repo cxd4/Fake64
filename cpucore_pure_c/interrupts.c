@@ -159,9 +159,28 @@ PI_DMA_Transfer_WR(void)
 {
 	uint32 to, from, length;
 
-  to=*((uint32 *)(PIREGS));
-  from=*((uint32 *)(PIREGS+0x04));
-  length=*((uint32 *)(PIREGS+0x0C));
+#ifdef CLIENT_ENDIAN
+	to     = *(uint32 *)(PIREGS + 0x00);
+	from   = *(uint32 *)(PIREGS + 0x04);
+	length = *(uint32 *)(PIREGS + 0x0C);
+#else
+	to =
+		((uint32)PIREGS[4*0 + 0] << 24) |
+		((uint32)PIREGS[4*0 + 1] << 16) |
+		((uint32)PIREGS[4*0 + 2] <<  8) |
+		((uint32)PIREGS[4*0 + 3] <<  0);
+	from =
+		((uint32)PIREGS[4*1 + 0] << 24) |
+		((uint32)PIREGS[4*1 + 1] << 16) |
+		((uint32)PIREGS[4*1 + 2] <<  8) |
+		((uint32)PIREGS[4*1 + 3] <<  0);
+	length =
+		((uint32)PIREGS[4*3 + 0] << 24) |
+		((uint32)PIREGS[4*3 + 1] << 16) |
+		((uint32)PIREGS[4*3 + 2] <<  8) |
+		((uint32)PIREGS[4*3 + 3] <<  0);
+#endif
+
   to&=0x1fffffff;
   from&=0x1fffffff; //
   printd(D_PI, D_INFO, "PI DMA Transfer: Cart->DRAM: 0x%x bytes from 0x%x to 0x%x at 0x%x\n",length+1,from,to,reg.pc);
@@ -181,9 +200,14 @@ PI_DMA_Transfer_RD(void)
 {
 	uint32 to,from,length;
 
-  to=*((uint32 *)(PIREGS+0x04)); 
-  from=*((uint32 *)(PIREGS));
-  length=*((uint32 *)(PIREGS+0x08));
+#ifdef CLIENT_ENDIAN
+	to     = *(uint32 *)(PIREGS + 0x04);
+	from   = *(uint32 *)(PIREGS + 0x00);
+	length = *(uint32 *)(PIREGS + 0x08);
+#else
+	puts("Big-endian PI_DMA_Transfer_RD not implemented.");
+#endif
+
   to&=0x1fffffff;
   from&=0x1fffffff;
   printd(D_PI, D_INFO, "PI DMA Transfer: DRAM->Cart: 0x%x bytes from 0x%x to 0x%x at 0x%x\n",length+1,from,to,reg.pc);
@@ -199,9 +223,14 @@ SP_DMA_Transfer_WR(void)
 {
 	uint32 to, from, length;
 
-  to=*((uint32 *)(SPREGS+0x04));
-  from=*((uint32 *)(SPREGS));
-  length=*((uint32 *)(SPREGS+0x0C));
+#ifdef CLIENT_ENDIAN
+	to=*((uint32 *)(SPREGS+0x04));
+	from=*((uint32 *)(SPREGS));
+	length=*((uint32 *)(SPREGS+0x0C));
+#else
+	puts("Big-endian SP_DMA_Transfer_WR not implemented.");
+#endif
+
   to&=0x1fffffff;
   from&=0x1fffffff;
   printd(D_RSP, D_INFO, "SP DMA Transfer: SP->RDRAM: 0x%x bytes from 0x%x to 0x%x\n",length+1,from,to);
@@ -217,9 +246,14 @@ SP_DMA_Transfer_RD(void)
 {
 	uint32 to, from, length;
 
-  to=*((uint32 *)(SPREGS));
-  from=*((uint32 *)(SPREGS+0x04));
-  length=*((uint32 *)(SPREGS+0x08));
+#ifdef CLIENT_ENDIAN
+	to    = *((uint32 *)(SPREGS));
+	from  = *((uint32 *)(SPREGS+0x04));
+	length= *((uint32 *)(SPREGS+0x08));
+#else
+	puts("Big-endian SP_DMA_Transfer_RD not implemented.");
+#endif
+
   to&=0x1fffffff;
   from&=0x1fffffff;
   printd(D_RSP, D_INFO, "SP DMA Transfer: RDRAM->SP: 0x%x bytes from 0x%x to 0x%x\n",length+1,from,to);
@@ -238,8 +272,12 @@ void PI_Status(int value)
     CLEAR_INTR(PI_INTERRUPT);
 }
 
-void si_dma_transfer_write() {
+void
+si_dma_transfer_write(void)
+{
 	uint32 src;
+
+#ifdef CLIENT_ENDIAN
 	printd(D_SI, D_INFO, "SI DMA Transfer to PIFRAM from 0x%x at 0x%x\n", *((uint32 *)SIREGS),reg.pc);
 	src = *((uint32 *)SIREGS);
 	src &= 0x1FFFFFFF;
@@ -248,13 +286,19 @@ void si_dma_transfer_write() {
 		src + RAM_OFFSET_MAP[(src & 0xFFFF0000ul) >> 16],
 		64
 	);
+#else
+	puts("si_dma_transfer_write");
+#endif
 	pifram_interrupt();
 }
 
-void si_dma_transfer_read()
+void
+si_dma_transfer_read(void)
 {
 	uint32 dest;
+
 	pifram_interrupt();
+#ifdef CLIENT_ENDIAN
 	printd(D_SI, D_INFO, "SI DMA Transfer to RDRAM at 0x%x at 0x%x\n", *((uint32 *)SIREGS),reg.pc);
 	dest = *((uint32 *)SIREGS);
 	dest &= 0x1FFFFFFF;
@@ -263,6 +307,9 @@ void si_dma_transfer_read()
 		PIFMEM + 0x07C0,
 		64
 	);
+#else
+	puts("si_dma_transfer_read");
+#endif
 }
 
 void Exception(uint32 type)
@@ -361,6 +408,7 @@ void GenerateInterrupt(uint32 type)
 
   MI_INTR_REG_R|=type;
 	if (type == MI_INTR_VI) {
+#ifdef CLIENT_ENDIAN
 		vi_display(
 			VIREGS,
 			(uint8 *)(
@@ -370,6 +418,9 @@ void GenerateInterrupt(uint32 type)
 				]
 			)
 		);
+#else
+		puts("GenerateInterrupt()");
+#endif
 		reg.gpr0[13] &= ~0xFF00;
 	}
   if(MI_INTR_REG_R&MI_INTR_MASK_REG_R)

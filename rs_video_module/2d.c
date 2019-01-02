@@ -3,6 +3,7 @@
 #endif
 
 #include <general.h>
+#include "memory.h"
 #include "video.h"
 #include "config_options.h"
 
@@ -22,7 +23,7 @@ void render2d_16(uint16* addr)
 	int i;
 
 	for (i = 0; i < sa.XRes * sa.YRes; i++) {
-		pixel = ((uint16 *)addr)[i ^ 1];
+		pixel = ((uint16 *)addr)[i ^ HALFWORD_ADDRESS_SWAP];
 		spack[i][0] = ((pixel & 0xF800) >> 11) * 8;
 		spack[i][1] = ((pixel & 0x07C0) >>  6) * 8;
 		spack[i][2] = ((pixel & 0x003E) >>  1) * 8;
@@ -55,16 +56,14 @@ void render2d_32(uint16* addr)
 	GLbyte rgba[4];
 	register int i;
 
+#ifdef CLIENT_ENDIAN
 	for (i = 0; i < sa.XRes * sa.YRes; i++) {
-		rgba[0] = ((uint8 *)addr)[4*i + 0];
-		rgba[1] = ((uint8 *)addr)[4*i + 1];
-		rgba[2] = ((uint8 *)addr)[4*i + 2];
-		rgba[3] = ((uint8 *)addr)[4*i + 3];
-		spack[i][0] = rgba[0 ^ 3];
-		spack[i][1] = rgba[1 ^ 3];
-		spack[i][2] = rgba[2 ^ 3];
-		spack[i][3] = rgba[3 ^ 3];
+		spack[i][0] = ((uint8 *)addr)[4*i + BES(0)];
+		spack[i][1] = ((uint8 *)addr)[4*i + BES(1)];
+		spack[i][2] = ((uint8 *)addr)[4*i + BES(2)];
+		spack[i][3] = ((uint8 *)addr)[4*i + BES(3)];
 	}
+#endif
 	glDisable(GL_DEPTH_TEST);
 	glDisable(GL_BLEND);
 	glBlendFunc(GL_ONE_MINUS_SRC_ALPHA, GL_ZERO);

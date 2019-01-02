@@ -1,4 +1,5 @@
 #include <general.h>
+#include "memory.h"
 #include "rcp_state.h"
 #include "rdpcommand.h"
 #include <module.h>
@@ -100,12 +101,16 @@ int get_numlight() {
 
 }
 
-void get_mtx(uint16* mtx, float* m) {
-
+void
+get_mtx(uint16* mtx, float* m)
+{
 	int i;
 
 	for (i = 0; i < 16; i++) {
-		m[i] = convert_frac(mtx[(i)^0x1], mtx[(i+16)^0x1]);   // ^1 to 'byte'swap ??
+		m[i] = convert_frac(
+			mtx[(i +  0) ^ HALFWORD_ADDRESS_SWAP],
+			mtx[(i + 16) ^ HALFWORD_ADDRESS_SWAP]
+		);
 	}
 }
 

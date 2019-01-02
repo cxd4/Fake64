@@ -162,6 +162,8 @@ void eCPU_COP1_NEGD(void)
 // sign extend or not ?
 void eCPU_LWC1(void)
 {
+	void* load_address;
+	int32 result;
 	uint32 addr;
 
 	addr = (uint32)((reg.gpr[base(op)] + (int16)offset(op)) & 0x1FFFFFFFul);
@@ -176,9 +178,19 @@ void eCPU_LWC1(void)
 	}
 #endif
 	if (addr & 0x04000000)
-		reg.gpr1[rt(op)] = *(int32 *)Check_Load(addr);
-	else /* 1964 doesn't seem to sign extend them mmmh yah it does. */
-		reg.gpr1[rt(op)] = *(int32 *)(addr + RAM_OFFSET_MAP[addr >> 16]);
+		load_address = Check_Load(addr);
+	else
+		load_address = RAM_OFFSET_MAP[(addr & 0xFFFF0000ul) >> 16] + addr;
+#ifdef CLIENT_ENDIAN
+	result = *(int32 *)load_address;
+#else
+	result =
+		(*(int8 *)(load_address + 0) << 24) |
+		(*(int8 *)(load_address + 1) << 16) |
+		(*(int8 *)(load_address + 2) <<  8) |
+		(*(int8 *)(load_address + 3) <<  0);
+#endif
+	reg.gpr1[rt(op)] = result;
 }
 
 
@@ -453,8 +465,14 @@ void eCPU_LDC1(void)
 	} else {
 		puts("Seriously?  This probably segfaults.");
 		temp.bit64 = *(uint64 *)(addr + RAM_OFFSET_MAP[addr >> 16]);
-		*((int32*)&reg.gpr1[rt(op)] + 0) = temp.bit32[1]; // ((uint64)temp.bit32[0] << 32) | (uint64)temp.bit32[1];
-		*((int32*)&reg.gpr1[rt(op)] + 1) = temp.bit32[0];
+#ifdef CLIENT_ENDIAN
+		*((int32 *)&reg.gpr1[rt(op)] + 0) = temp.bit32[1];
+		*((int32 *)&reg.gpr1[rt(op)] + 1) = temp.bit32[0];
+#else
+		temp.bit64 =
+			((uint64)temp.bit32[0] << 32) |
+			((uint64)temp.bit32[1] <<  0);
+#endif
 	}
 }
 
@@ -490,13 +508,15 @@ void eCPU_SDC1(void)
 #ifdef DEBUG
 	if (RAM_OFFSET_MAP[(addr & 0xFFFF0000ul) >> 16] == NULL) {
 		printf(
-			"SWC1:  Unimplemented memory area.  addr:  0x%08lX\n",
+			"SDC1:  Unimplemented memory area.  addr:  0x%08lX\n",
 			(unsigned long)addr
 		);
 		lerror = -2;
 		return;
 	}
 #endif
+
+#ifdef CLIENT_ENDIAN
   if(addr&0x04000000)
     { addr=Check_Store(addr,reg.gpr1[rt(op)]);
       if (addr)
@@ -504,4 +524,7 @@ void eCPU_SDC1(void)
     }
  else
    *((uint64*)(addr+RAM_OFFSET_MAP[addr>>16]))=*((uint64*)&reg.gpr1[rt(op)]);
+#else
+	puts("SDC1:  Big-endian version not yet implemented.");
+#endif
 }

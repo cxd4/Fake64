@@ -121,16 +121,25 @@ void main_cpu_loop(struct rom *rom,struct module_info* mods)
         	reg.gpr0[1] = 0x0000001f;
         	reg.gpr0[16] = 0x0006e463; 
         	reg.gpr0[15]   = 0x00000b00;
+
 					reg.VInextInt=625000;
 //        gHardwareState.COP1Con[0]      = 0x00000511;
-	        *((uint32 *)MIREGS+4)=0x01010101;
+#ifdef CLIENT_ENDIAN
+		*((uint32 *)MIREGS + 4) = 0x01010101;
+#else
+		MIREGS[4*1 + 0] = 0x01;
+		MIREGS[4*1 + 1] = 0x01;
+		MIREGS[4*1 + 2] = 0x01;
+		MIREGS[4*1 + 3] = 0x01;
+#endif
 //    MI_VERSION_REG_R = 0x01010101;
+
 	reg.CPUdelayPC=0; reg.CPUdelay=0;
 
 	/* Copy bootcode to SP_DMEM. */
 	memcpy(RAM_OFFSET_MAP[0x0400] + 0x04000000, rom->header, 0x1000);
 
-#if 0
+#if 0 && defined(CLIENT_ENDIAN)
 	reg.pc =
 		0xFFFFFFFF00000000 +
 		*(int32 *)(RAM_OFFSET_MAP[0x400] + 0x4000008);
@@ -141,8 +150,18 @@ void main_cpu_loop(struct rom *rom,struct module_info* mods)
 
 	/* Do CRC of boot code, and set CIC accordingly. */
 	crc = 0x00000000;
+	puts("Why do I get the feeling I likely translated this wrong?");
 	for (i = 0; i < 1008; i++) {
+#ifdef SERVER_ENDIAN
+		crc +=
+			((uint32)*(uint8 *)(RAM_OFFSET_MAP[0x0400] + 0x04000040 + 4*i + 0) << 24) |
+			((uint32)*(uint8 *)(RAM_OFFSET_MAP[0x0400] + 0x04000040 + 4*i + 1) << 16) |
+			((uint32)*(uint8 *)(RAM_OFFSET_MAP[0x0400] + 0x04000040 + 4*i + 2) <<  8) |
+			((uint32)*(uint8 *)(RAM_OFFSET_MAP[0x0400] + 0x04000040 + 4*i + 3) <<  0)
+		;
+#else
 		crc += *(uint32 *)(RAM_OFFSET_MAP[0x400] + 0x4000040 + i);
+#endif
 	}
 	switch (crc) {
 	case 0x98f85f89:
@@ -189,8 +208,19 @@ void main_cpu_loop(struct rom *rom,struct module_info* mods)
 		}
 #endif
 
+#ifdef CLIENT_ENDIAN
 		rpc = reg.pc & 0x1FFFFFFF;
 		op  = *(uint32 *)(rpc + RAM_OFFSET_MAP[(rpc >> 16) & 0xFFFFu]);
+#else
+		puts("Here goes nothing...");
+		rpc = reg.pc & 0x1FFFFFFC;
+		op =
+			((uint32)*(uint8 *)(RAM_OFFSET_MAP[(rpc >> 16) & 0xFFFFu] + rpc + 0) >> 24) |
+			((uint32)*(uint8 *)(RAM_OFFSET_MAP[(rpc >> 16) & 0xFFFFu] + rpc + 0) >> 16) |
+			((uint32)*(uint8 *)(RAM_OFFSET_MAP[(rpc >> 16) & 0xFFFFu] + rpc + 0) >>  8) |
+			((uint32)*(uint8 *)(RAM_OFFSET_MAP[(rpc >> 16) & 0xFFFFu] + rpc + 0) >>  0)
+		;
+#endif
 
 #ifdef DEBUG
 	if(debugger.print) {

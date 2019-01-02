@@ -3,6 +3,7 @@
 #endif
 
 #include <general.h>
+#include "memory.h"
 #include "rcp_state.h"
 #include "rdpcommand.h"
 #include <module.h>
@@ -306,7 +307,7 @@ void perform_vtx(rdp_command cmd) {
 	dest = (uint16*)(&rcpst.vtx[G_VTX_V0(cmd)]);
 
 	for (i = 0; i < wtc; i++) {
-		dest[i] = ptr[i^0x1];
+		dest[i] = ptr[i ^ HALFWORD_ADDRESS_SWAP];
 	}
 
 /*

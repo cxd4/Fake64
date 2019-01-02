@@ -5,6 +5,7 @@
 #include <GL/glu.h>
 
 #include <general.h>
+#include "memory.h"
 #include <module.h>
 #include "rcp_state.h"
 #include "rdpcommand.h"
@@ -25,20 +26,24 @@ void reset_stacks() {
 
 }
 
-void dodrawrect(int x1, int y1, int x2, int y2) {
+void
+dodrawrect(int x1, int y1, int x2, int y2)
+{
+	uint16 source;
+	int i;
 
-int i;
 	// Multiply by a scale factor in here
 
 //	x1 = x1 << 1;
 //	x2 = x2 << 1;
 //	y1 = y1 << 1;
 //	y2 = y2 << 1;
-        for (i = 0; i < (rcpst.sprite.sprite_w * rcpst.sprite.sprite_h); i++) {
-		spack[i][0] = (((((uint16*)rcpst.sprite.r_src)[i^0x1] & 0xf800) >> 11) * 8);
-		spack[i][1] = (((((uint16*)rcpst.sprite.r_src)[i^0x1] & 0x07c0) >> 6) * 8);
-		spack[i][2] = (((((uint16*)rcpst.sprite.r_src)[i^0x1] & 0x003e) >> 1) * 8);
-		spack[i][3] = ((((uint16*)rcpst.sprite.r_src)[i^0x1] & 0x0001) * 255);
+        for (i = 0; i < rcpst.sprite.sprite_w * rcpst.sprite.sprite_h; i++) {
+        	source = ((uint16 *)rcpst.sprite.r_src)[i ^ HALFWORD_ADDRESS_SWAP];
+		spack[i][0] = ((source & 0xF800) >> 11) * 8;
+		spack[i][1] = ((source & 0x07C0) >>  6) * 8;
+		spack[i][2] = ((source & 0x003E) >>  1) * 8;
+		spack[i][3] = ((source & 0x0001) >>  0) * 255;
 	}
 	if (!(x1 || y1) && (x2 = 319) && (y2 = 219)) {
 
@@ -108,17 +113,25 @@ void dodrawsprite() {
 
 }
 
-void old_dodrawsprite() {
-
+void
+old_dodrawsprite(void)
+{
+	uint16 source;
 	int i;
 
-//	glPixelZoom((float)((float)rcpst.sprite.scale_x * 2.0), (float)((float)rcpst.sprite.scale_y * 2.0));
+#if 0
+	glPixelZoom(
+		(float)((float)rcpst.sprite.scale_x * 2.0),
+		(float)((float)rcpst.sprite.scale_y * 2.0)
+	);
+#endif
 
-	for (i = 0; i < (rcpst.sprite.sprite_w * rcpst.sprite.sprite_h); i++) {
-		spack[i][0] = (((((uint16*)rcpst.sprite.r_src)[i^0x1] & 0xf800) >> 11) * 8);
-		spack[i][1] = (((((uint16*)rcpst.sprite.r_src)[i^0x1] & 0x07c0) >> 6) * 8);
-		spack[i][2] = (((((uint16*)rcpst.sprite.r_src)[i^0x1] & 0x003e) >> 1) * 8);
-		spack[i][3] = ((((uint16*)rcpst.sprite.r_src)[i^0x1] & 0x0001) * 255);
+	for (i = 0; i < rcpst.sprite.sprite_w * rcpst.sprite.sprite_h; i++) {
+		source = ((uint16 *)rcpst.sprite.r_src)[i ^ HALFWORD_ADDRESS_SWAP];
+		spack[i][0] = ((source & 0xf800) >> 11) * 8;
+		spack[i][1] = ((source & 0x07c0) >>  6) * 8;
+		spack[i][2] = ((source & 0x003e) >>  1) * 8;
+		spack[i][3] = ((source & 0x0001) >>  0) * 255;
 	}
 
 	glDisable(GL_DEPTH_TEST);

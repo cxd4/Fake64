@@ -1,4 +1,5 @@
 #include "general.h"
+#include "memory.h"
 
 #include <SDL/SDL.h>
 #include <controller.h>
@@ -273,11 +274,11 @@ void update_pifram() {
 	int i;
 	uint8 ffb, bread, bwrite, cmd;
 
-	for (i = 0; ((i < 8) && (PIFRAM[(i*8)+3] != 0xfe)); i++) {
-		ffb = PIFRAM[(i*8)+3];
-		bread = PIFRAM[(i*8)+2];
-		bwrite = PIFRAM[(i*8)+1];
-		cmd = PIFRAM[(i*8)];
+	for (i = 0; ((i < 8) && (PIFRAM[BES(i*8)] != 0xfe)); i++) {
+		ffb    = PIFRAM[BES(i*8)];
+		bread  = PIFRAM[BES(i*8)];
+		bwrite = PIFRAM[BES(i*8)];
+		cmd    = PIFRAM[BES(i*8)];
 
 		if (ffb == 0xff) {
 			perform_command(i, PIFRAM[i*8], bread, bwrite);

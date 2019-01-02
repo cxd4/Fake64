@@ -57,4 +57,5 @@ $CPU_CORE $VIDEO_MODULE $AUDIO_MODULE $INPUT_MODULE"
 
 rm loader_static
 #gcc -o loader_static $SRC_LIST -DSTATIC_MODULES -DGPROF -pg -I$src/include -I$src/romloader -I$src/cpucore_pure_c -lm -ldl -lSDL -lpthread -lGL -lGLU
-gcc -o loader_static $SRC_LIST -DSTATIC_MODULES -I$src/include -I$src/romloader -I$src/cpucore_pure_c -lm -ldl -lSDL -lpthread -lGL -lGLU
+gcc -o loader_static $SRC_LIST -DSTATIC_MODULES -DCLIENT_ENDIAN -I$src/include -I$src/romloader -I$src/cpucore_pure_c -lm -ldl -lSDL -lpthread -lGL -lGLU
+#gcc -o loader_static $SRC_LIST -DSTATIC_MODULES -I$src/include -I$src/romloader -I$src/cpucore_pure_c -lm -ldl -lSDL -lpthread -lGL -lGLU
