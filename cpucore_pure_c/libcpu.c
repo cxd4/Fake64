@@ -149,33 +149,28 @@ void main_cpu_loop(struct rom *rom,struct module_info* mods)
 	lerror = 0;
 
 	/* Do CRC of boot code, and set CIC accordingly. */
-	crc = 0x00000000;
-	puts("Why do I get the feeling I likely translated this wrong?");
-	for (i = 0; i < 1008; i++) {
 #ifdef SERVER_ENDIAN
-		crc +=
-			((uint32)*(uint8 *)(RAM_OFFSET_MAP[0x0400] + 0x04000040 + 4*i + 0) << 24) |
-			((uint32)*(uint8 *)(RAM_OFFSET_MAP[0x0400] + 0x04000040 + 4*i + 1) << 16) |
-			((uint32)*(uint8 *)(RAM_OFFSET_MAP[0x0400] + 0x04000040 + 4*i + 2) <<  8) |
-			((uint32)*(uint8 *)(RAM_OFFSET_MAP[0x0400] + 0x04000040 + 4*i + 3) <<  0)
-		;
-#else
-		crc += *(uint32 *)(RAM_OFFSET_MAP[0x400] + 0x4000040 + i);
+	puts("These CRCs are always wrong, btw.");
 #endif
+	crc = 0x00000000;
+	for (i = 0; i < 1008; i++) {
+		const uint32 addend =
+			*(uint32 *)(RAM_OFFSET_MAP[0x0400] + 0x04000040 + i);
+		crc += addend;
 	}
 	switch (crc) {
-	case 0x98f85f89:
-		reg.gpr[0x16] = 0x3f;
-  		break;
-	case 0x13fd446f:				
+	case 0x98F85F89:
+		reg.gpr[0x16] = 0x3F;
+		break;
+	case 0x13FD446F:
 		reg.gpr[0x16] = 0x91;
-  		break;
-	case 0xb31279a3:
+		break;
+	case 0xB31279A3:
 		reg.gpr[0x16] = 0x78;
-  		break;
-	case 0xe645acd6:
+		break;
+	case 0xE645ACD6:
 		reg.gpr[0x16] = 0x85;
-  		break;
+		break;
 	default:
 		printf("Unknown bootloader crc 0x%08X\n", crc);
 		break;

@@ -109,7 +109,6 @@ load_n64_rom(char* filename)
 	bytes = fread(rom, 1, length, fp);
 	printf("ROM loaded:  %d/%d bytes read.\n", bytes, length);
 
-	/* TODO: convert endian... see endian.c */
 	romstruct = (struct rom *)dmalloc(sizeof(struct rom));
 
 	romstruct->length   = bytes;
@@ -117,15 +116,67 @@ load_n64_rom(char* filename)
 	romstruct->header   = rom;
 	romstruct->bootcode = rom + 0x40;
 	romstruct->progcode = rom + 0x1000;
+
+	printf("image[0] before = 0x%02X\n", romstruct->image[0]);
 	byteswap(romstruct->length, romstruct->image);
+	printf("image[0] after  = 0x%02X\n", romstruct->image[0]);
+
+	romstruct->PI_BSB_DOM1_LAT_REG  = romstruct->image[ 0];
+	romstruct->PI_BSB_DOM1_PGS_REG  = romstruct->image[ 1];
+	romstruct->PI_BSB_DOM1_PWD_REG  = romstruct->image[ 2];
+	romstruct->PI_BSB_DOM1_PGS_REG2 = romstruct->image[ 3];
+
+	romstruct->clockrate =
+		((uint32)(romstruct->image[ 4]) << 24) |
+		((uint32)(romstruct->image[ 5]) << 16) |
+		((uint32)(romstruct->image[ 6]) <<  8) |
+		((uint32)(romstruct->image[ 7]) <<  0);
+	romstruct->PC =
+		((uint32)(romstruct->image[ 8]) << 24) |
+		((uint32)(romstruct->image[ 9]) << 16) |
+		((uint32)(romstruct->image[10]) <<  8) |
+		((uint32)(romstruct->image[11]) <<  0);
+	romstruct->release =
+		((uint32)(romstruct->image[12]) << 24) |
+		((uint32)(romstruct->image[13]) << 16) |
+		((uint32)(romstruct->image[14]) <<  8) |
+		((uint32)(romstruct->image[15]) <<  0);
+
+	romstruct->CRC1 =
+		((uint32)(romstruct->image[16]) << 24) |
+		((uint32)(romstruct->image[17]) << 16) |
+		((uint32)(romstruct->image[18]) <<  8) |
+		((uint32)(romstruct->image[19]) <<  0);
+	romstruct->CRC2 =
+		((uint32)(romstruct->image[20]) << 24) |
+		((uint32)(romstruct->image[21]) << 16) |
+		((uint32)(romstruct->image[22]) <<  8) |
+		((uint32)(romstruct->image[23]) <<  0);
+	romstruct->unknown1 =
+		((uint32)(romstruct->image[24]) << 24) |
+		((uint32)(romstruct->image[25]) << 16) |
+		((uint32)(romstruct->image[26]) <<  8) |
+		((uint32)(romstruct->image[27]) <<  0);
+	romstruct->unknown2 =
+		((uint32)(romstruct->image[28]) << 24) |
+		((uint32)(romstruct->image[29]) << 16) |
+		((uint32)(romstruct->image[30]) <<  8) |
+		((uint32)(romstruct->image[31]) <<  0);
 
 	memcpy(
-		romstruct,
-		rom,
-		sizeof(struct rom) -
-			4*sizeof(uint8 *) /* image/header/bootcode/progcode */
-		-	sizeof(int) /* length */
+		&(romstruct->name[0]),
+		&(romstruct->image[32]),
+		20
 	);
+	romstruct->name[20] = '\0';
+	romstruct->unknown3 = romstruct->image[52] + romstruct->image[58];
+	romstruct->manufacturer = romstruct->image[59];
+
+	romstruct->cartridge_id =
+		((uint16)(romstruct->image[60]) << 8) |
+		((uint16)(romstruct->image[61]) << 0);
+	romstruct->country_code = romstruct->image[62];
+	romstruct->country_code >>= 8; /* Wrong.  image[63] is its own field. */
 	return (romstruct);
 }
 
@@ -162,17 +213,13 @@ void dumpheader(struct rom *rom)
 	else
 		putchar('\n');
 
-  printf("Cartridge ID: 0x%x\nCountry Code: 0x%x ",rom->cardridge_id,rom->country_code);
-  switch(rom->country_code)
-   {
-     case 0x4400: printf("(Germany)"); break;
-     case 0x4500: printf("(USA)"); break;
-     case 0x4A00: printf("(Japan)"); break;
-     case 0x5000: printf("(Europe)"); break;
-     case 0x5500: printf("(Australia)"); break;     
-   }
-  printf("\n");
-  printf("Size: %d megabits\n",((rom->length*8)/1024)/1024);
+	printf(
+		"Cartridge ID:  0x%04X\n"\
+		"Country Code:  '%c'\n",
+		rom->cartridge_id,
+		rom->country_code
+	);
+	printf("Size: %d megabits\n",((rom->length*8)/1024)/1024);
 }
 
 int is_module(const struct dirent *name)
