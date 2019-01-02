@@ -18,15 +18,15 @@ extern struct screen_attributes sa;
 
 void render2d_16(uint16* addr)
 {
+	uint16 pixel;
 	int i;
 
-	for (i = 0; i < (sa.XRes * sa.YRes); i++)
-	{
-		spack[i][0] = (((((uint16*)addr)[i^0x1] & 0xf800) >> 11) * 8);
-		spack[i][1] = (((((uint16*)addr)[i^0x1] & 0x07c0) >> 6) * 8);
-		spack[i][2] = (((((uint16*)addr)[i^0x1] & 0x003e) >> 1) * 8);
-		spack[i][3] = ((((uint16*)addr)[i^0x1] & 0x0001) * 255);	// hmm doesn;t work otherwise though :/	(change blending modes when i get round to it)
-	//	printf("%d\n",spack[i][3]);
+	for (i = 0; i < sa.XRes * sa.YRes; i++) {
+		pixel = ((uint16 *)addr)[i ^ 1];
+		spack[i][0] = ((pixel & 0xF800) >> 11) * 8;
+		spack[i][1] = ((pixel & 0x07C0) >>  6) * 8;
+		spack[i][2] = ((pixel & 0x003E) >>  1) * 8;
+		spack[i][3] = ((pixel & 0x0001) >>  0) * 255;
 	}
 
 	reset_stacks();
@@ -39,8 +39,12 @@ void render2d_16(uint16* addr)
 //	glPixelZoom(1.0f,1.0f);
 //	glPixelZoom((float)sa.Height/(float)sa.YRes,-(float)sa.Width/(float)sa.XRes);//-sa.Height/sa.YRes);
 	glPixelZoom((float)sa.Width/(float)sa.XRes,-(float)sa.Height/(float)sa.YRes);
-	glDrawPixels(sa.XRes,sa.YRes,GL_RGBA, GL_UNSIGNED_BYTE, spack);
-
+	glDrawPixels(
+		sa.XRes, sa.YRes,
+		GL_RGBA,
+		GL_UNSIGNED_BYTE,
+		spack
+	);
 
 	glEnable(GL_DEPTH_TEST);
 	glDisable(GL_BLEND);
@@ -48,13 +52,31 @@ void render2d_16(uint16* addr)
 
 void render2d_32(uint16* addr)
 {
+	GLbyte rgba[4];
+	register int i;
+
+	for (i = 0; i < sa.XRes * sa.YRes; i++) {
+		rgba[0] = ((uint8 *)addr)[4*i + 0];
+		rgba[1] = ((uint8 *)addr)[4*i + 1];
+		rgba[2] = ((uint8 *)addr)[4*i + 2];
+		rgba[3] = ((uint8 *)addr)[4*i + 3];
+		spack[i][0] = rgba[0 ^ 3];
+		spack[i][1] = rgba[1 ^ 3];
+		spack[i][2] = rgba[2 ^ 3];
+		spack[i][3] = rgba[3 ^ 3];
+	}
 	glDisable(GL_DEPTH_TEST);
 	glDisable(GL_BLEND);
 	glBlendFunc(GL_ONE_MINUS_SRC_ALPHA, GL_ZERO);
 
 	glRasterPos2i(0,sa.Height-1);
 	glPixelZoom((float)sa.Height/(float)sa.YRes,-(float)sa.Width/(float)sa.XRes);//-sa.Height/sa.YRes);
-	glDrawPixels(sa.XRes,sa.YRes,GL_RGBA, GL_UNSIGNED_BYTE, addr);
+	glDrawPixels(
+		sa.XRes, sa.YRes,
+		GL_RGBA,
+		GL_UNSIGNED_BYTE,
+		spack
+	);
 
 	glEnable(GL_DEPTH_TEST);
 }
