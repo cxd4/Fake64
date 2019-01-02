@@ -149,13 +149,47 @@ void main_cpu_loop(struct rom *rom,struct module_info* mods)
 	lerror = 0;
 
 	/* Do CRC of boot code, and set CIC accordingly. */
-#ifdef SERVER_ENDIAN
-	puts("These CRCs are always wrong, btw.");
-#endif
 	crc = 0x00000000;
 	for (i = 0; i < 1008; i++) {
+#ifdef CLIENT_ENDIAN
 		const uint32 addend =
 			*(uint32 *)(RAM_OFFSET_MAP[0x0400] + 0x04000040 + i);
+#else
+		/* OMG stupid N64 emulators and their stupid x86 endian.... */
+		uint32 addend = 0x00000000;
+		uint8* addr = (uint8 *)(RAM_OFFSET_MAP[0x0400] + 0x04000040);
+
+		switch (i % 4) {
+		case 0:
+			addend =
+				((uint32)addr[i + 0] << 24) |
+				((uint32)addr[i + 1] << 16) |
+				((uint32)addr[i + 2] <<  8) |
+				((uint32)addr[i + 3] <<  0);
+			break;
+		case 1:
+			addend =
+				((uint32)addr[i + 6] << 24) |
+				((uint32)addr[i - 1] << 16) |
+				((uint32)addr[i - 0] <<  8) |
+				((uint32)addr[i + 1] <<  0);
+			break;
+		case 2:
+			addend =
+				((uint32)addr[i + 4] << 24) |
+				((uint32)addr[i + 5] << 16) |
+				((uint32)addr[i - 2] <<  8) |
+				((uint32)addr[i - 1] <<  0);
+			break;
+		case 3:
+			addend =
+				((uint32)addr[i + 2] << 24) |
+				((uint32)addr[i + 3] << 16) |
+				((uint32)addr[i + 4] <<  8) |
+				((uint32)addr[i - 3] <<  0);
+			break;
+		}
+#endif
 		crc += addend;
 	}
 	switch (crc) {
