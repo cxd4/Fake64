@@ -215,6 +215,12 @@ void main_cpu_loop(struct rom *rom,struct module_info* mods)
 	}
 
 	while (lerror == 0) {
+#ifdef CLIENT_ENDIAN
+		uint32* iw_addr;
+#else
+		uint8* iw_addr;
+#endif
+
 #if 0
 		if (!op) {
 #ifdef DEBUG
@@ -239,15 +245,20 @@ void main_cpu_loop(struct rom *rom,struct module_info* mods)
 
 #ifdef CLIENT_ENDIAN
 		rpc = reg.pc & 0x1FFFFFFF;
-		op  = *(uint32 *)(rpc + RAM_OFFSET_MAP[(rpc >> 16) & 0xFFFFu]);
+		iw_addr = (uint32 *)(
+			RAM_OFFSET_MAP[(rpc & 0xFFFF0000ul) >> 16] + rpc
+		);
+		op  = *(uint32 *)(iw_addr);
 #else
-		puts("Here goes nothing...");
 		rpc = reg.pc & 0x1FFFFFFC;
+		iw_addr = (uint8 *)(
+			RAM_OFFSET_MAP[(rpc >> 16) & 0xFFFCu] + rpc
+		);
 		op =
-			((uint32)*(uint8 *)(RAM_OFFSET_MAP[(rpc >> 16) & 0xFFFFu] + rpc + 0) >> 24) |
-			((uint32)*(uint8 *)(RAM_OFFSET_MAP[(rpc >> 16) & 0xFFFFu] + rpc + 0) >> 16) |
-			((uint32)*(uint8 *)(RAM_OFFSET_MAP[(rpc >> 16) & 0xFFFFu] + rpc + 0) >>  8) |
-			((uint32)*(uint8 *)(RAM_OFFSET_MAP[(rpc >> 16) & 0xFFFFu] + rpc + 0) >>  0)
+			(((uint32)*(iw_addr + 0)) << 24) |
+			(((uint32)*(iw_addr + 1)) << 16) |
+			(((uint32)*(iw_addr + 2)) <<  8) |
+			(((uint32)*(iw_addr + 3)) <<  0)
 		;
 #endif
 
