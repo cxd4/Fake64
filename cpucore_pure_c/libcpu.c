@@ -274,7 +274,9 @@ void main_cpu_loop(struct rom *rom,struct module_info* mods)
 #ifdef DEBUG
 		debugger_step();
 #endif
-    		ecpu_instr[opcode(op)>>26]();
+
+		ecpu_instr[opcode(op) >> 26]();
+
 		reg.gpr0[9]+=counter_factor;
 
           switch (reg.CPUdelay)

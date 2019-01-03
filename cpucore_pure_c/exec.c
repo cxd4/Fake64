@@ -126,11 +126,15 @@ void eCPU_SPECIAL_SLTU(void) {
 }
 
 // 4/12 CORRECT
-void eCPU_LUI(void) {
-	reg.gpr[rt(op)] = (int64)((int32)(((int16)immediate(op)) << 16));
+void
+eCPU_LUI(void)
+{
+	reg.gpr[rt(op)] = (int64)(
+		(int32)(((int16)immediate(op)) << 16)
+	);
 }
 
-// 9/11
+// 9/11 would rate again
 void eCPU_ORI(void) {
 	reg.gpr[rt(op)] = reg.gpr[rs(op)] | (uint16)immediate(op);
 }
@@ -518,19 +522,20 @@ void eCPU_LW(void)
 		return;
 	}
 #endif
-	if (addr & 0x04000000)
+	if (addr & 0x04000000) {
 		address = Check_Load(addr);
-	else
+	} else {
 		address = RAM_OFFSET_MAP[(addr & 0xFFFF0000ul) >> 16] + addr;
+	}
 
 #ifdef CLIENT_ENDIAN
 	reg.gpr[rt(op)] = *(int32 *)(address);
 #else
 	reg.gpr[rt(op)] = (int32)(
-		((uint32)(uint8 *)(address + 0) << 24) |
-		((uint32)(uint8 *)(address + 1) << 16) |
-		((uint32)(uint8 *)(address + 2) <<  8) |
-		((uint32)(uint8 *)(address + 3) <<  0)
+		((uint32)*(uint8 *)(address + 0) << 24) |
+		((uint32)*(uint8 *)(address + 1) << 16) |
+		((uint32)*(uint8 *)(address + 2) <<  8) |
+		((uint32)*(uint8 *)(address + 3) <<  0)
 	);
 #endif
 }
