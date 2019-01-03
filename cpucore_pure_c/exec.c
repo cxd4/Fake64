@@ -325,12 +325,18 @@ void eCPU_SH(void)
 
 void eCPU_LHU(void)
 {
+	void* address;
+	uint16 halfword;
 	uint32 addr;
 
- addr=(reg.gpr[base(op)]+(int16)offset(op)) & 0x1fffffff;
+	addr = (reg.gpr[base(op)] + (int16)offset(op)) & 0x1FFFFFFF;
+#ifdef CLIENT_ENDIAN
 	addr = HES(addr);
+#endif
+
+	address = RAM_OFFSET_MAP[(addr & 0xFFFF0000ul) >> 16];
 #ifdef DEBUG
-	if (RAM_OFFSET_MAP[(addr & 0xFFFF0000ul) >> 16] == NULL) {
+	if (address == NULL) {
 		printf(
 			"LHU:  Unimplemented memory area.  addr:  0x%08lX\n",
 			(unsigned long)addr
@@ -340,17 +346,17 @@ void eCPU_LHU(void)
 	}
 #endif
 
-#ifdef CLIENT_ENDIAN
 	if (addr & 0x04000000) {
-		reg.gpr[rt(op)] = *(uint16 *)Check_Load(addr);
+		address = Check_Load(addr);
 	} else {
-		reg.gpr[rt(op)] = *(uint16 *)(
-			addr + RAM_OFFSET_MAP[(addr & 0xFFFF0000ul) >> 16]
-		);
+		address += addr;
 	}
+#ifdef CLIENT_ENDIAN
+	halfword = *(uint16 *)(address);
 #else
-	puts("LHU");
+	halfword = ((uint16)(*(uint8 *)address) << 8) | *(uint8 *)(address + 1);
 #endif
+	reg.gpr[rt(op)] = halfword;
 }
 
 void eCPU_SB(void)
