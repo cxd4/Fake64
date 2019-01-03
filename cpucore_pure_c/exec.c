@@ -434,6 +434,7 @@ void eCPU_LB(void)
 void eCPU_SD(void)
 {
 	void* address;
+	uint64 doubleword;
 	uint32 addr;
 
 	// ok... i'm just following N64OPS#H.TXT here...
@@ -462,13 +463,21 @@ void eCPU_SD(void)
 			return;
 		}
 	} else {
+		doubleword = (uint64)(reg.gpr[rt(op)]);
 #if defined(CLIENT_ENDIAN) && (BYTE_ADDRESS_SWAP == 3)
 		*(uint32 *)(address + 0) =
-			(uint32)((reg.gpr[rt(op)] >> 32) & 0xFFFFFFFFul);
+			(uint32)((doubleword >> 32) & 0xFFFFFFFFul);
 		*(uint32 *)(address + 4) =
-			(uint32)((reg.gpr[rt(op)] >>  0) & 0xFFFFFFFFul);
+			(uint32)((doubleword >>  0) & 0xFFFFFFFFul);
 #elif defined(SERVER_ENDIAN)
-		puts("SD");
+		*(uint8 *)(address + 0) = (uint8)((doubleword >> 56) & 0xFF);
+		*(uint8 *)(address + 1) = (uint8)((doubleword >> 48) & 0xFF);
+		*(uint8 *)(address + 2) = (uint8)((doubleword >> 40) & 0xFF);
+		*(uint8 *)(address + 3) = (uint8)((doubleword >> 32) & 0xFF);
+		*(uint8 *)(address + 4) = (uint8)((doubleword >> 24) & 0xFF);
+		*(uint8 *)(address + 5) = (uint8)((doubleword >> 16) & 0xFF);
+		*(uint8 *)(address + 6) = (uint8)((doubleword >>  8) & 0xFF);
+		*(uint8 *)(address + 7) = (uint8)((doubleword >>  0) & 0xFF);
 #else
 		puts("SD:  little-endian non-32-bit memory");
 #endif
