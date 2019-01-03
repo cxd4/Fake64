@@ -400,27 +400,39 @@ void GenerateTimerInterrupt()
   COP0_CAUSE|=0x8000;
 }
 
-void GenerateInterrupt(uint32 type)
+void
+GenerateInterrupt(uint32 type)
 {
 #ifdef DEBUG
- printd(D_CPU, D_DEBUG, "Interrupt generated at 0x%x count=%d type=0x%x\n",(uint32)reg.pc,(uint32)reg.gpr0[9],type);
+	printd(
+		D_CPU, D_DEBUG,
+		"Interrupt generated at 0x%08X count=%08X type=0x%X\n",
+		(uint32)reg.pc, (uint32)reg.gpr0[9], type
+	);
 #endif
 
-  MI_INTR_REG_R|=type;
+	MI_INTR_REG_R|=type;
 	if (type == MI_INTR_VI) {
+		const uint32 vi_dram_addr_reg =
 #ifdef CLIENT_ENDIAN
+			*(uint32 *)(VIREGS + 4)
+#else
+			(*(uint8 *)(VIREGS + 4 + 0) << 24) |
+			(*(uint8 *)(VIREGS + 4 + 1) << 16) |
+			(*(uint8 *)(VIREGS + 4 + 2) <<  8) |
+			(*(uint8 *)(VIREGS + 4 + 3) <<  0)
+#endif
+		;
+		const uint32 fb_origin = vi_dram_addr_reg & 0x1FFFFFFF;
+
 		vi_display(
 			VIREGS,
 			(uint8 *)(
-				(*((uint32*)(VIREGS + 4)) & 0x1FFFFFFF) +
-				RAM_OFFSET_MAP[
-					(*(uint32*)(VIREGS + 4) >> 16) & 0x1FFF
+				fb_origin + RAM_OFFSET_MAP[
+					(vi_dram_addr_reg >> 16) & 0x1FFF
 				]
 			)
 		);
-#else
-		puts("GenerateInterrupt()");
-#endif
 		reg.gpr0[13] &= ~0xFF00;
 	}
   if(MI_INTR_REG_R&MI_INTR_MASK_REG_R)
