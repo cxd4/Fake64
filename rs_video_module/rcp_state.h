@@ -1,5 +1,7 @@
 extern void dump_segments();
-extern void init_fdiv_tables();
+extern void init_fdiv_tables(void);
+extern void init_sprite_cache(void);
+
 extern float convert_frac(short, unsigned short);
 extern void dump_numlight();
 extern int get_numlight();

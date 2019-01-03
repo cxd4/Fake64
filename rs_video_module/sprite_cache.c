@@ -49,8 +49,8 @@ uint32* scale_sprite(uint32* data, struct sprite_cfg *sprite, SDL_PixelFormat *f
 	return scaled;
 }
 
-void init_sprite_cache() {
-
+void init_sprite_cache(void)
+{
 	int red, green, blue, alpha, size;
 
 	memset(spriteind, 0x00, (4 * 0x10000));

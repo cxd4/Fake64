@@ -67,6 +67,9 @@ extern uint8 *ROM;		// rom(header&everythin)
 
 extern void* RAM_OFFSET_MAP[];
 
+void* Check_Load(int32 addr);
+void* Check_Store(int32 addr, uint32 value);
+
 #include "romheader.h"
 int alloc_memory (struct rom *rom);
 void init_memory (int romlength);

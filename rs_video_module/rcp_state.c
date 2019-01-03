@@ -39,16 +39,15 @@ uint32 translate_dma_address(uint32 addr) {
         return ret;
 }
 
-
-void init_fdiv_tables() {
-
+void
+init_fdiv_tables(void)
+{
 	int i;
 
 	for (i = 0; i < 0x100; i++) {
-		frach[i] = (float)i/(float)0x100;
-		fracl[i] = (float)i/(float)0x10000;
+		frach[i] = (float)i/0x100;
+		fracl[i] = (float)i/0x10000;
 	}
-
 }
 
 // not too sure about this at all

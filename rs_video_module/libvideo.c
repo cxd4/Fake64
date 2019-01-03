@@ -3,6 +3,8 @@
 #endif
 
 #include "general.h"
+#include "render.h"
+#include "rcp_state.h"
 
 #include <SDL/SDL.h>
 #include <stdio.h>

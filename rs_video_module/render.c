@@ -15,15 +15,15 @@ uint8 spack[320*240][4];
 
 uint32* get_sprite(struct sprite_cfg*);
 
-void reset_stacks() {
-
+void
+reset_stacks(void)
+{
 	glMatrixMode(GL_PROJECTION);
 	glLoadIdentity();
 	glOrtho(0.0, (float)win_width, 0.0, (float)win_height, -1.0, 1.0);
 
 	glMatrixMode(GL_MODELVIEW);
 	glLoadIdentity();
-
 }
 
 void

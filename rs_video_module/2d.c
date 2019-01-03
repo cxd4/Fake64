@@ -2,7 +2,8 @@
 	#include <windows.h>
 #endif
 
-#include <general.h>
+#include "general.h"
+#include "render.h"
 #include "memory.h"
 #include "video.h"
 #include "config_options.h"
