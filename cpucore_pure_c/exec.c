@@ -433,13 +433,14 @@ void eCPU_LB(void)
 
 void eCPU_SD(void)
 {
+	void* address;
 	uint32 addr;
 
- // ok... i'm just following N64OPS#H.TXT here...
- addr=(reg.gpr[base(op)]+(int16)offset(op)) & 0x1fffffff;
- // are switch()'s inefficient? -- YES (but these ifs below are even worse)
+	// ok... i'm just following N64OPS#H.TXT here...
+	addr = (reg.gpr[base(op)] + (int16)offset(op)) & 0x1FFFFFFF;
+	address = RAM_OFFSET_MAP[(addr & 0xFFFF0000ul) >> 16];
 #ifdef DEBUG
-	if (RAM_OFFSET_MAP[(addr & 0xFFFF0000ul) >> 16] == NULL) {
+	if (address == NULL) {
 		printf(
 			"SH:  Unimplemented memory area.  addr:  0x%08lX\n",
 			(unsigned long)addr
@@ -448,6 +449,7 @@ void eCPU_SD(void)
 		return;
 	}
 #endif
+	address += addr;
 
 	if (addr & 0x04000000) {
 		switch (addr) {
@@ -461,9 +463,9 @@ void eCPU_SD(void)
 		}
 	} else {
 		puts("wtf?  I doubt this works right.");
-		*(uint32 *)(addr + RAM_OFFSET_MAP[(addr >> 16) & 0xFFFFu] + 0) =
+		*(uint32 *)(address + 0) =
 			(uint32)((reg.gpr[rt(op)] >> 32) & 0xFFFFFFFFul);
-		*(uint32 *)(addr + RAM_OFFSET_MAP[(addr >> 16) & 0xFFFFu] + 1) =
+		*(uint32 *)(address + 1) =
 			(uint32)((reg.gpr[rt(op)] >>  0) & 0xFFFFFFFFul);
 	}
 }
@@ -654,15 +656,19 @@ void eCPU_SPECIAL_AND(void) {
 
 void eCPU_LD(void)
 {
- union {
-    uint32 bit32[2];
-    uint64 bit64;
-  } temp;
- uint32 addr;
- addr=(reg.gpr[base(op)]+(int16)offset(op)) & 0x1fffffff;
+#ifdef CLIENT_ENDIAN
+	union {
+		uint32 bit32[2];
+		uint64 bit64;
+	} temp;
+#endif
+	void* address;
+	uint32 addr;
 
+	addr = (reg.gpr[base(op)] + (int16)offset(op)) & 0x1FFFFFFF;
+	address = RAM_OFFSET_MAP[(addr & 0xFFFF0000ul) >> 16];
 #ifdef DEBUG
-	if (RAM_OFFSET_MAP[addr >> 16] == NULL) {
+	if (address == NULL) {
 		printf(
 			"LD:  Unimplemented memory area.  addr:  0x%08lX\n",
 			(unsigned long)addr
@@ -671,6 +677,7 @@ void eCPU_LD(void)
 		return;
 	}
 #endif
+	address += addr;
 
 	if (addr & 0x04000000) {
 		switch (addr) {
@@ -683,13 +690,23 @@ void eCPU_LD(void)
 			break;
 		}
 	} else {
-#ifdef CLIENT_ENDIAN
-		temp.bit64 = *(uint64 *)(addr + RAM_OFFSET_MAP[addr >> 16]);
+#if defined(CLIENT_ENDIAN) && (BYTE_ADDRESS_SWAP == 3)
+		temp.bit64 = *(uint64 *)(address);
 		reg.gpr[rt(op)] =
 			((uint64)temp.bit32[0] << 32) |
 			((uint64)temp.bit32[1] <<  0);
+#elif defined(SERVER_ENDIAN)
+		reg.gpr[rt(op)] =
+			((uint64)(*(uint8 *)(address + 0)) << 56) |
+			((uint64)(*(uint8 *)(address + 1)) << 48) |
+			((uint64)(*(uint8 *)(address + 2)) << 40) |
+			((uint64)(*(uint8 *)(address + 3)) << 32) |
+			((uint64)(*(uint8 *)(address + 4)) << 24) |
+			((uint64)(*(uint8 *)(address + 5)) << 16) |
+			((uint64)(*(uint8 *)(address + 6)) <<  8) |
+			((uint64)(*(uint8 *)(address + 7)) <<  0);
 #else
-		puts("LD");
+		puts("LD:  little-endian non-32-bit memory");
 #endif
 	}
 }
