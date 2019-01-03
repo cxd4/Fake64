@@ -56,14 +56,12 @@ void render2d_32(uint16* addr)
 	GLbyte rgba[4];
 	register int i;
 
-#ifdef CLIENT_ENDIAN
 	for (i = 0; i < sa.XRes * sa.YRes; i++) {
 		spack[i][0] = ((uint8 *)addr)[4*i + BES(0)];
 		spack[i][1] = ((uint8 *)addr)[4*i + BES(1)];
 		spack[i][2] = ((uint8 *)addr)[4*i + BES(2)];
 		spack[i][3] = ((uint8 *)addr)[4*i + BES(3)];
 	}
-#endif
 	glDisable(GL_DEPTH_TEST);
 	glDisable(GL_BLEND);
 	glBlendFunc(GL_ONE_MINUS_SRC_ALPHA, GL_ZERO);
