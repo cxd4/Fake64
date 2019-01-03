@@ -542,6 +542,7 @@ void eCPU_LW(void)
 
 void eCPU_LH(void)
 {
+	void* address;
 	uint32 addr;
 
  addr=(reg.gpr[base(op)]+(int16)offset(op)) & 0x1fffffff;
@@ -557,13 +558,17 @@ void eCPU_LH(void)
 	}
 #endif
 
-#ifdef CLIENT_ENDIAN
 	if (addr & 0x04000000)
-		reg.gpr[rt(op)] = *(int16 *)(Check_Load(addr));
-	else /* 1964 doesn't seem to sign extend them mmmh yah it does. */
-		reg.gpr[rt(op)] = *(int16 *)(addr + RAM_OFFSET_MAP[addr >> 16]);
+		address = Check_Load(addr);
+	else
+		address = RAM_OFFSET_MAP[(addr & 0xFFFF0000ul) >> 16] + addr;
+#ifdef CLIENT_ENDIAN
+	reg.gpr[rt(op)] = *(int16 *)(address);
 #else
-	puts("LH");
+	reg.gpr[rt(op)] = (int16)(
+		((uint16)(*(uint8 *)(address + 0)) << 8) |
+		((uint16)(*(uint8 *)(address + 1)) << 0)
+	);
 #endif
 }
 
