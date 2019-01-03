@@ -462,11 +462,16 @@ void eCPU_SD(void)
 			return;
 		}
 	} else {
-		puts("wtf?  I doubt this works right.");
+#if defined(CLIENT_ENDIAN) && (BYTE_ADDRESS_SWAP == 3)
 		*(uint32 *)(address + 0) =
 			(uint32)((reg.gpr[rt(op)] >> 32) & 0xFFFFFFFFul);
-		*(uint32 *)(address + 1) =
+		*(uint32 *)(address + 4) =
 			(uint32)((reg.gpr[rt(op)] >>  0) & 0xFFFFFFFFul);
+#elif defined(SERVER_ENDIAN)
+		puts("SD");
+#else
+		puts("SD:  little-endian non-32-bit memory");
+#endif
 	}
 }
 
