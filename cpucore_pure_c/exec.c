@@ -995,13 +995,14 @@ void eCPU_SWR(void)
 
 void eCPU_LWL(void)
 {
+	void* address;
 	uint32 addr;
 	uint32 taddr;
 
-addr=(reg.gpr[base(op)]+(int16)offset(op)) & 0x1fffffff;
-//printf("LWL: addy:0x%x at 0x%x\n",addr,reg.pc);
+	addr = (reg.gpr[base(op)] + (int16)offset(op)) & 0x1FFFFFFF;
+	address = RAM_OFFSET_MAP[(addr & 0x1FFF0000ul) >> 16];
 #ifdef DEBUG
-	if (RAM_OFFSET_MAP[addr >> 16] = NULL) {
+	if (address == NULL) {
 		printf(
 			"LW:  Unimplemented memory area.  addr:  0x%08lX\n",
 			(unsigned long)addr
@@ -1011,35 +1012,40 @@ addr=(reg.gpr[base(op)]+(int16)offset(op)) & 0x1fffffff;
 	}
 #endif
 
-#ifdef CLIENT_ENDIAN
 	if (addr & 0x04000000)
-		taddr = *(int32 *)(Check_Load(addr & 0x1FFFFFFC));
-	else /* 1964 doesn't seem to sign extend them mmmh yah it does. */
-		taddr = *(int32 *)(
-			(addr & 0x1FFFFFFC) +
-			RAM_OFFSET_MAP[(addr & 0x1FFFFFFC & 0xFFFF0000ul) >> 16]
-		);
-
-  switch (addr & 3)
-  {
-  case 0:
-      reg.gpr[rt(op)] = (int32)taddr;
-      break;
-  case 1:
-			reg.gpr[rt(op)] = (int32)((reg.gpr[rt(op)] & 0x000000ff) | (taddr << 8));
-      break;
-  case 2:
-			reg.gpr[rt(op)] = (int32)((reg.gpr[rt(op)] & 0x0000ffff) | (taddr << 16));
-      break;
-  case 3:
-			reg.gpr[rt(op)] = (int32)((reg.gpr[rt(op)] & 0x00ffffff) | (taddr << 24));
-      break;
-  }
+		address = Check_Load(addr & 0x1FFFFFFC);
+	else
+		address += addr & 0x1FFFFFFC;
+#ifdef CLIENT_ENDIAN
+	taddr = *(int32 *)(address);
 #else
-	puts("LWL");
+	taddr =
+		((uint32)(*(uint8 *)(address + 0)) << 24) |
+		((uint32)(*(uint8 *)(address + 1)) << 16) |
+		((uint32)(*(uint8 *)(address + 2)) <<  8) |
+		((uint32)(*(uint8 *)(address + 3)) <<  0);
 #endif
-}
 
+	switch (addr & 3) {
+	case 0:
+		taddr = (taddr & 0xFFFFFFFFul) << 0;
+		reg.gpr[rt(op)] &= 0x00000000ul;
+		break;
+	case 1:
+		taddr = (taddr & 0x00FFFFFFul) << 8;
+		reg.gpr[rt(op)] &= 0x000000FFul;
+		break;
+	case 2:
+		taddr = (taddr & 0x0000FFFFul) << 16;
+		reg.gpr[rt(op)] &= 0x0000FFFFul;
+		break;
+	case 3:
+		taddr = (taddr & 0x000000FFul) << 24;
+		reg.gpr[rt(op)] &= 0x00FFFFFFul;
+		break;
+	}
+	reg.gpr[rt(op)] = (int32)(taddr | reg.gpr[rt(op)]);
+}
 
 void eCPU_LWR(void)
 {
