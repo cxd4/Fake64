@@ -1116,52 +1116,54 @@ void eCPU_LWL(void)
 
 void eCPU_LWR(void)
 {
+	void* address;
 	uint32 addr;
-	uint32 taddr;
+	uint32 taddr, source;
 
-addr=(reg.gpr[base(op)]+(int16)offset(op)) & 0x1fffffff;
+	addr = (reg.gpr[base(op)] + (int16)offset(op)) & 0x1FFFFFFF;
 
-//printf("lWR: addy:0x%x at 0x%x\n",addr,reg.pc);
+	address = RAM_OFFSET_MAP[(addr & 0xFFFF0000ul) >> 16];
 #ifdef DEBUG
-	if (RAM_OFFSET_MAP[addr >> 16] = NULL) {
-		printf(
-			"LW:  Unimplemented memory area.  addr:  0x%08lX\n",
-			(unsigned long)addr
-		);
-		lerror = -2;
+	if (address == NULL) {
+		puts("LWR:  Unimplemented memory area.");
 		return;
 	}
 #endif
 
-#ifdef CLIENT_ENDIAN
 	if (addr & 0x04000000)
-		taddr = *(int32 *)(Check_Load(addr & 0x1FFFFFFC));
-	else /* 1964 doesn't seem to sign extend them mmmh yah it does. */
-		taddr = *(int32 *)(
-			(addr & 0x1FFFFFFC) +
-			RAM_OFFSET_MAP[(addr & 0x1FFFFFFC & 0xFFFF0000ul) >> 16]
-		);
-
-  switch (addr & 3)
-  {
-  case 3:
-      reg.gpr[rt(op)] = (int32)taddr;
-      break;
-  case 2:
-			reg.gpr[rt(op)] = (int32)((reg.gpr[rt(op)] & 0xff000000) | (taddr >> 8));
-      break;
-  case 1:
-			reg.gpr[rt(op)] = (int32)((reg.gpr[rt(op)] & 0xffff0000) | (taddr >> 16));
-      break;
-  case 0:
-			reg.gpr[rt(op)] = (int32)((reg.gpr[rt(op)] & 0xffffff00) | (taddr >> 24));
-      break;
-	default:
-		printf("LWR broken\n");
-  }
+		address = Check_Load(addr & 0x1FFFFFFC);
+	else
+		address += addr & 0x1FFFFFFC;
+#ifdef CLIENT_ENDIAN
+	taddr = *(uint32 *)(address);
 #else
-	puts("LWR");
+	taddr =
+		((uint32)(*(uint8 *)(address + 0)) << 24) |
+		((uint32)(*(uint8 *)(address + 1)) << 16) |
+		((uint32)(*(uint8 *)(address + 2)) <<  8) |
+		((uint32)(*(uint8 *)(address + 3)) <<  0);
 #endif
+
+	switch (addr & 3) {
+	case 3:
+		source = (uint32)(reg.gpr[rt(op)]) & 0x00000000;
+		taddr = (taddr >>  0) & 0xFFFFFFFFul;
+		break;
+	case 2:
+		source = (uint32)(reg.gpr[rt(op)]) & 0xFF000000;
+		taddr = (taddr >>  8) & 0x00FFFFFFul;
+		break;
+	case 1:
+		source = (uint32)(reg.gpr[rt(op)]) & 0xFFFF0000;
+		taddr = (taddr >> 16) & 0x0000FFFFul;
+		break;
+	case 0:
+	default:
+		source = (uint32)(reg.gpr[rt(op)]) & 0xFFFFFF00;
+		taddr = (taddr >> 24) & 0x000000FFul;
+		break;
+	}
+	reg.gpr[rt(op)] = (int32)(source | taddr);
 }
 
 void eCPU_STOLEN(void) {
