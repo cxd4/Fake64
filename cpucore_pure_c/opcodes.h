@@ -317,8 +317,8 @@ void eCPU_DADDI(void);
 void eCPU_DADDIU(void);
 void eCPU_LB(void);
 void eCPU_LH(void);
-void eCPU_LWL(void);
 void eCPU_LW(void);
+void eCPU_LWU(void);
 void eCPU_LBU(void);
 void eCPU_LHU(void);
 void eCPU_LWR(void);
@@ -341,6 +341,7 @@ void eCPU_SPECIAL_UNIMPLEMENTED(void);
 void eCPU_REGIMM_UNIMPLEMENTED(void);
 void eCPU_COP0_UNIMPLEMENTED(void);
 void eCPU_COP1_UNIMPLEMENTED(void);
+
 void eCPU_LWL(void);
 void eCPU_LWR(void);
 void eCPU_BGTL(void);
@@ -384,6 +385,7 @@ void eCPU_STOLEN(void);
 #define CPU_LBU (uint32)(36 << bshift)
 #define CPU_LHU (uint32)(37 << bshift)
 #define CPU_LWR (uint32)(38 << bshift)
+#define CPU_LWU (uint32)(39 << bshift)
 #define CPU_SB (uint32)(40 << bshift)
 #define CPU_SH (uint32)(41 << bshift)
 #define CPU_SWL (uint32)(42 << bshift)

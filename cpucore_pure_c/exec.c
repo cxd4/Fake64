@@ -526,7 +526,6 @@ void eCPU_SW(void)
 #endif
 }
 
-
 void eCPU_LW(void)
 {
 	void* address;
@@ -534,7 +533,7 @@ void eCPU_LW(void)
 
 	addr = (reg.gpr[base(op)] + (int16)offset(op)) & 0x1FFFFFFF;
 #ifdef DEBUG
-	if (RAM_OFFSET_MAP[(addr & 0xFFFF0000ul) >> 16] = NULL) {
+	if (RAM_OFFSET_MAP[(addr & 0xFFFF0000ul) >> 16] == NULL) {
 		printf(
 			"LW:  Unimplemented memory area.  addr:  0x%08lX\n",
 			(unsigned long)addr
@@ -561,6 +560,51 @@ void eCPU_LW(void)
 	);
 #endif
 }
+
+/*
+ * 2019.01.03 cxd4
+ * added new LWU op-code
+ */
+void
+eCPU_LWU(void)
+{
+	void* address;
+	uint32 addr;
+	uint32 word; /* same operation as LW...just zero-extended, not signed */
+
+	addr = (reg.gpr[base(op)] + (int16)offset(op)) & 0x1FFFFFFF;
+	if (addr & 3) {
+		puts("LWU:  Address Error exception");
+		return;
+	}
+
+	address = RAM_OFFSET_MAP[(addr & 0xFFFF0000ul) >> 16];
+#ifdef DEBUG
+	if (address == NULL) {
+		puts("LWU:  Unimplemented memory area.");
+		reg.gpr[rt(op)] = 0;
+		return;
+	}
+#endif
+
+	if (addr & 0x04000000) {
+		address = Check_Load(addr);
+	} else {
+		address += addr;
+	}
+
+#ifdef CLIENT_ENDIAN
+	memcpy(&word, address, sizeof(uint32));
+#else
+	word =
+		((uint32)(*(uint8 *)(address + 0)) << 24) |
+		((uint32)(*(uint8 *)(address + 1)) << 16) |
+		((uint32)(*(uint8 *)(address + 2)) <<  8) |
+		((uint32)(*(uint8 *)(address + 3)) <<  0);
+#endif
+	reg.gpr[rt(op)] = (uint64)((uint32)word);
+}
+
 
 void eCPU_LH(void)
 {
