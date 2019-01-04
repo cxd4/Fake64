@@ -1007,33 +1007,56 @@ void eCPU_SWL(void)
 
 void eCPU_SWR(void)
 {
+	void* address;
 	uint32 addr;
-	uint32 ltmp;
+	uint32 ltmp, source;
 
-	addr = (reg.gpr[base(op)] + (int16)offset(op)) & 0x1fffffff;
-	printf("SWR:  addy 0x%X at 0x%08lX\n", addr, (unsigned long)reg.pc);
-	ltmp = *(int32 *)(
-		(addr & 0x1FFFFFFC) +
-		RAM_OFFSET_MAP[(addr & 0x1FFFFFFC) >> 16]
-	);
- switch(addr&3)
-  { case 3:  ltmp =reg.gpr[rt(op)]; break;
-    case 2:  ltmp = ((uint32)reg.gpr[rt(op)]<<8)|(ltmp&0x000000ff); break;
-    case 1:  ltmp = ((uint32)reg.gpr[rt(op)]<<16)|(ltmp&0x0000ffff); break;
-    default: ltmp = ((uint32)reg.gpr[rt(op)]<<24)|(ltmp&0x00ffffff); break;
-  }
+	addr = (reg.gpr[base(op)] + (int16)offset(op)) & 0x1FFFFFFF;
+
+	address = RAM_OFFSET_MAP[(addr & 0x1FFFFFFCul) >> 16];
+	address += addr & 0x1FFFFFFC;
+
+#ifdef CLIENT_ENDIAN
+	ltmp = *(uint32 *)(address);
+#else
+	ltmp =
+		((uint32)(*(uint8 *)(address + 0)) << 24) |
+		((uint32)(*(uint8 *)(address + 1)) << 16) |
+		((uint32)(*(uint8 *)(address + 2)) <<  8) |
+		((uint32)(*(uint8 *)(address + 3)) <<  0);
+#endif
+	switch (addr & 3) {
+	case 3:
+		source = (uint32)(reg.gpr[rt(op)] <<  0) & 0xFFFFFFFFul;
+		ltmp &= 0x00000000;
+		break;
+	case 2:
+		source = (uint32)(reg.gpr[rt(op)] <<  8) & 0xFFFFFF00ul;
+		ltmp &= 0x000000FF;
+		break;
+	case 1:
+		source = (uint32)(reg.gpr[rt(op)] << 16) & 0xFFFF0000ul;
+		ltmp &= 0x0000FFFF;
+		break;
+	case 0:
+	default:
+		source = (uint32)(reg.gpr[rt(op)] << 24) & 0xFF000000ul;
+		ltmp &= 0x00FFFFFF;
+		break;
+	}
+	ltmp = source | ltmp;
 
 	addr &= 0x1FFFFFFC;
-#ifdef CLIENT_ENDIAN
 	if (addr & 0x04000000) {
-		addr = Check_Store(addr, ltmp);
-		if (addr)
-			*(uint32 *)addr = ltmp;
-	} else {
-		*(uint32 *)(addr + RAM_OFFSET_MAP[addr >> 16]) = ltmp;
+		address = Check_Store(addr, ltmp);
 	}
+#ifdef CLIENT_ENDIAN
+	*(uint32 *)(address) = ltmp;
 #else
-	puts("SWR");
+	*(uint8 *)(address + 0) = (uint8)((ltmp & 0xFF000000ul) >> 24);
+	*(uint8 *)(address + 1) = (uint8)((ltmp & 0x00FF0000ul) >> 16);
+	*(uint8 *)(address + 2) = (uint8)((ltmp & 0x0000FF00ul) >>  8);
+	*(uint8 *)(address + 3) = (uint8)((ltmp & 0x000000FFul) >>  0);
 #endif
 }
 
